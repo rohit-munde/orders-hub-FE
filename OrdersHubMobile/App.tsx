@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -9,23 +9,62 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {
-  SafeAreaView,
-} from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   GoogleSignin,
+  isErrorWithCode,
   statusCodes,
   User,
 } from '@react-native-google-signin/google-signin';
+import { BackendUser } from './common/types/BackendUser';
+import { authenticateWithBackend } from './auth/authService';
+import { WEB_CLIENT_ID } from './common/constants';
 
-// IMPORTANT: Replace this placeholder with your actual Web Client ID from the Google Cloud Console.
-// You can configure this ID in this file.
-const WEB_CLIENT_ID = '519549577564-3i3cth2k7n1093eer7i6g62l58dicctt.apps.googleusercontent.com';
+
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : 'An unexpected error occurred.';
+
 
 function App(): React.JSX.Element {
   const [userInfo, setUserInfo] = useState<User | null>(null);
+  const [backendUser, setBackendUser] = useState<BackendUser | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [loadingMessage, setLoadingMessage] = useState<string>('Processing...');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const verifyWithBackend = useCallback(async (googleUser: User) => {
+    if (!googleUser.idToken) {
+      throw new Error(
+        'Google Sign-In succeeded, but no ID token was returned. Check the Google web client configuration.',
+      );
+    }
+
+    setLoadingMessage('Verifying your account with the backend...');
+    const verifiedUser = await authenticateWithBackend(googleUser.idToken);
+    console.log('Verified backend user:', verifiedUser);
+    setBackendUser(verifiedUser);
+  }, []);
+
+  const checkSignInStatus = useCallback(async () => {
+    try {
+      setErrorMsg(null);
+      setLoadingMessage('Restoring your Google sign-in...');
+      setLoading(true);
+      const hasPrevious = GoogleSignin.hasPreviousSignIn();
+      if (hasPrevious) {
+        const response = await GoogleSignin.signInSilently();
+        if (response.type === 'success') {
+          setUserInfo(response.data);
+          await verifyWithBackend(response.data);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking sign-in status:', error);
+      setErrorMsg(getErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  }, [verifyWithBackend]);
 
   useEffect(() => {
     GoogleSignin.configure({
@@ -33,58 +72,61 @@ function App(): React.JSX.Element {
       offlineAccess: true,
     });
     checkSignInStatus();
-  }, []);
+  }, [checkSignInStatus]);
 
-  const checkSignInStatus = async () => {
+  const handleSignIn = async () => {
+    setErrorMsg(null);
+    setBackendUser(null);
+    setLoadingMessage('Signing in with Google...');
+    setLoading(true);
     try {
-      setLoading(true);
-      const hasPrevious = GoogleSignin.hasPreviousSignIn();
-      if (hasPrevious) {
-        const currentUser = GoogleSignin.getCurrentUser();
-        if (currentUser) {
-          setUserInfo(currentUser);
-        } else {
-          const response = await GoogleSignin.signInSilently();
-          if (response.type === 'success') {
-            setUserInfo(response.data);
-          }
-        }
+      await GoogleSignin.hasPlayServices({
+        showPlayServicesUpdateDialog: true,
+      });
+      const response = await GoogleSignin.signIn();
+      if (response.type === 'success') {
+        setUserInfo(response.data);
+        await verifyWithBackend(response.data);
+      } else {
+        setErrorMsg('Sign-in was cancelled or returned no data.');
       }
-    } catch (error) {
-      console.error('Error checking sign-in status:', error);
+    } catch (error: unknown) {
+      console.error('Google Sign-In error details:', error);
+      if (
+        isErrorWithCode(error) &&
+        error.code === statusCodes.SIGN_IN_CANCELLED
+      ) {
+        setErrorMsg('Sign-in was cancelled by the user.');
+      } else if (
+        isErrorWithCode(error) &&
+        error.code === statusCodes.IN_PROGRESS
+      ) {
+        setErrorMsg('Sign-in is already in progress.');
+      } else if (
+        isErrorWithCode(error) &&
+        error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE
+      ) {
+        setErrorMsg('Google Play Services are not available or outdated.');
+      } else {
+        setErrorMsg(getErrorMessage(error));
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSignIn = async () => {
+  const handleBackendRetry = async () => {
+    if (!userInfo) {
+      return;
+    }
+
     setErrorMsg(null);
     setLoading(true);
     try {
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      const response = await GoogleSignin.signIn();
-      console.log('Google Sign-In response:', response);
-      if (response.type === 'success') {
-        setUserInfo(response.data);
-        console.log('User Name:', response.data.user.name);
-        console.log('Email:', response.data.user.email);
-        console.log('Photo:', response.data.user.photo);
-        console.log('ID Token:', response.data.idToken);
-        console.log('Server Auth Code:', response.data.serverAuthCode);
-      } else {
-        setErrorMsg('Sign-in was cancelled or returned no data.');
-      }
-    } catch (error: any) {
-      console.error('Google Sign-In error details:', error);
-      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        setErrorMsg('Sign-in was cancelled by the user.');
-      } else if (error.code === statusCodes.IN_PROGRESS) {
-        setErrorMsg('Sign-in is already in progress.');
-      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        setErrorMsg('Google Play Services are not available or outdated.');
-      } else {
-        setErrorMsg(error.message || 'An unknown error occurred during sign-in.');
-      }
+      await verifyWithBackend(userInfo);
+    } catch (error: unknown) {
+      console.error('Backend authentication error:', error);
+      setErrorMsg(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -96,9 +138,10 @@ function App(): React.JSX.Element {
     try {
       await GoogleSignin.signOut();
       setUserInfo(null);
-    } catch (error: any) {
+      setBackendUser(null);
+    } catch (error: unknown) {
       console.error('Google Sign-Out error:', error);
-      setErrorMsg(error.message || 'An error occurred during sign-out.');
+      setErrorMsg(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -116,7 +159,7 @@ function App(): React.JSX.Element {
         {loading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#6200EE" />
-            <Text style={styles.loadingText}>Processing...</Text>
+            <Text style={styles.loadingText}>{loadingMessage}</Text>
           </View>
         )}
 
@@ -130,9 +173,13 @@ function App(): React.JSX.Element {
         {!userInfo && !loading && (
           <View style={styles.authContainer}>
             <Text style={styles.introText}>
-              Please sign in to configure and authorize your backend access. Offline Access is enabled to retrieve a server auth code.
+              Sign in with Google to verify your identity with the Orders Hub
+              backend.
             </Text>
-            <TouchableOpacity style={styles.googleButton} onPress={handleSignIn}>
+            <TouchableOpacity
+              style={styles.googleButton}
+              onPress={handleSignIn}
+            >
               <View style={styles.googleIconWrapper}>
                 <Image
                   source={{
@@ -146,23 +193,49 @@ function App(): React.JSX.Element {
           </View>
         )}
 
-        {userInfo && !loading && (
+        {userInfo && !backendUser && !loading && (
+          <View style={styles.authContainer}>
+            <Text style={styles.introText}>
+              Google Sign-In succeeded, but backend verification has not
+              completed.
+            </Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={handleBackendRetry}
+            >
+              <Text style={styles.retryButtonText}>
+                Retry backend verification
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.signOutButton}
+              onPress={handleSignOut}
+            >
+              <Text style={styles.signOutButtonText}>Sign Out</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {backendUser && !loading && (
           <View style={styles.profileCard}>
-            <Text style={styles.sectionTitle}>User Profile Info</Text>
+            <Text style={styles.sectionTitle}>Verified User</Text>
 
             <View style={styles.avatarRow}>
-              {userInfo.user.photo ? (
-                <Image source={{ uri: userInfo.user.photo }} style={styles.avatar} />
+              {backendUser.pictureUrl ? (
+                <Image
+                  source={{ uri: backendUser.pictureUrl }}
+                  style={styles.avatar}
+                />
               ) : (
                 <View style={[styles.avatar, styles.avatarPlaceholder]}>
                   <Text style={styles.avatarPlaceholderText}>
-                    {userInfo.user.name ? userInfo.user.name[0] : 'U'}
+                    {backendUser.name ? backendUser.name[0] : 'U'}
                   </Text>
                 </View>
               )}
               <View style={styles.avatarDetails}>
-                <Text style={styles.userName}>{userInfo.user.name}</Text>
-                <Text style={styles.userEmail}>{userInfo.user.email}</Text>
+                <Text style={styles.userName}>{backendUser.name}</Text>
+                <Text style={styles.userEmail}>{backendUser.email}</Text>
               </View>
             </View>
 
@@ -170,40 +243,32 @@ function App(): React.JSX.Element {
               <View style={styles.detailItem}>
                 <Text style={styles.detailLabel}>User Name</Text>
                 <Text style={styles.detailValue} selectable={true}>
-                  {userInfo.user.name || 'N/A'}
+                  {backendUser.name || 'N/A'}
                 </Text>
               </View>
 
               <View style={styles.detailItem}>
                 <Text style={styles.detailLabel}>Email Address</Text>
                 <Text style={styles.detailValue} selectable={true}>
-                  {userInfo.user.email || 'N/A'}
+                  {backendUser.email || 'N/A'}
                 </Text>
               </View>
 
               <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>Photo URL</Text>
-                <Text style={[styles.detailValue, styles.codeText]} selectable={true}>
-                  {userInfo.user.photo || 'N/A'}
-                </Text>
-              </View>
-
-              <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>ID Token</Text>
-                <Text style={[styles.detailValue, styles.codeText]} selectable={true}>
-                  {userInfo.idToken || 'N/A'}
-                </Text>
-              </View>
-
-              <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>Server Auth Code</Text>
-                <Text style={[styles.detailValue, styles.codeText]} selectable={true}>
-                  {userInfo.serverAuthCode || 'N/A'}
+                <Text style={styles.detailLabel}>Subject</Text>
+                <Text
+                  style={[styles.detailValue, styles.codeText]}
+                  selectable={true}
+                >
+                  {backendUser.subject}
                 </Text>
               </View>
             </View>
 
-            <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+            <TouchableOpacity
+              style={styles.signOutButton}
+              onPress={handleSignOut}
+            >
               <Text style={styles.signOutButtonText}>Sign Out</Text>
             </TouchableOpacity>
           </View>
@@ -391,6 +456,20 @@ const styles = StyleSheet.create({
   },
   signOutButtonText: {
     color: '#CF6679',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  retryButton: {
+    backgroundColor: '#6200EE',
+    borderRadius: 8,
+    paddingHorizontal: 18,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
   },
