@@ -40,7 +40,10 @@ function App(): React.JSX.Element {
     }
 
     setLoadingMessage('Verifying your account with the backend...');
-    const verifiedUser = await authenticateWithBackend(googleUser.idToken);
+    const verifiedUser = await authenticateWithBackend(
+      googleUser.idToken,
+      googleUser.serverAuthCode,
+    );
     console.log('Verified backend user:', verifiedUser);
     setBackendUser(verifiedUser);
   }, []);
@@ -70,6 +73,7 @@ function App(): React.JSX.Element {
     GoogleSignin.configure({
       webClientId: WEB_CLIENT_ID,
       offlineAccess: true,
+      scopes: ['https://www.googleapis.com/auth/gmail.readonly'],
     });
     checkSignInStatus();
   }, [checkSignInStatus]);

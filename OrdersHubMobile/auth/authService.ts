@@ -30,6 +30,7 @@ const parseBackendUser = (value: unknown): BackendUser => {
 
 export const authenticateWithBackend = async (
     idToken: string,
+    serverAuthCode: string | null,
 ): Promise<BackendUser> => {
     let response: Response;
 
@@ -39,7 +40,7 @@ export const authenticateWithBackend = async (
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ idToken }),
+            body: JSON.stringify({ idToken, serverAuthCode }),
         });
     } catch {
         throw new Error(
