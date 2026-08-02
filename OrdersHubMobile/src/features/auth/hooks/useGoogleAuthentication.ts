@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   GoogleSignin,
   isErrorWithCode,
@@ -61,10 +61,13 @@ function messageFor(error: unknown): string {
 export function useGoogleAuthentication(
   onAuthenticated: (session: AuthSession) => void,
 ) {
+  const authenticationInProgress = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const authenticate = useCallback(async () => {
+    if (authenticationInProgress.current) return;
+    authenticationInProgress.current = true;
     setIsLoading(true);
     setError(null);
 
@@ -75,6 +78,7 @@ export function useGoogleAuthentication(
     } catch (caughtError) {
       setError(messageFor(caughtError));
     } finally {
+      authenticationInProgress.current = false;
       setIsLoading(false);
     }
   }, [onAuthenticated]);
