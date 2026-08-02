@@ -26,7 +26,7 @@ export function AppScreen({
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
       <StatusBar
-        barStyle={dark ? 'light-content' : 'dark-content'}
+        barStyle={screenTheme.mode === 'dark' ? 'light-content' : 'dark-content'}
         backgroundColor={backgroundColor}
       />
       <View style={[styles.content, contentStyle]}>{children}</View>
