@@ -6,9 +6,13 @@ const SESSION_USERNAME = 'ordershub-session';
 const sessionServiceOptions = { service: SESSION_SERVICE } as const;
 
 export async function saveAuthSession(session: AuthSession): Promise<void> {
+  const storedSession: AuthSession = {
+    appToken: session.appToken,
+    user: session.user,
+  };
   const stored = await Keychain.setGenericPassword(
     SESSION_USERNAME,
-    JSON.stringify(session),
+    JSON.stringify(storedSession),
     sessionServiceOptions,
   );
 

@@ -47,6 +47,21 @@ it('stores and restores the complete authentication session', async () => {
   await expect(loadAuthSession()).resolves.toEqual(session);
 });
 
+it('does not persist extra fields from the backend response envelope', async () => {
+  const responseEnvelope = {
+    ...session,
+    syncPreview: { messages: [{ subject: 'Private order' }] },
+  } as AuthSession;
+
+  await saveAuthSession(responseEnvelope);
+
+  expect(Keychain.setGenericPassword).toHaveBeenCalledWith(
+    'ordershub-session',
+    JSON.stringify(session),
+    service,
+  );
+});
+
 it('returns null when no session is stored', async () => {
   (Keychain.getGenericPassword as jest.Mock).mockResolvedValue(false);
 
