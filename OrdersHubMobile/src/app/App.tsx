@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { LoginScreen } from '../features/auth/LoginScreen';
+import { loadAuthSession } from '../features/auth/services/secureTokenStorage';
 import { AuthSession } from '../features/auth/types';
 import { HomeScreen } from '../features/home/HomeScreen';
 import { OnboardingScreen } from '../features/onboarding/OnboardingScreen';
@@ -23,8 +24,27 @@ function AppContent(): React.JSX.Element {
   const [session, setSession] = useState<AuthSession | null>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => setRoute('onboarding'), SPLASH_DURATION_MS);
-    return () => clearTimeout(timer);
+    let isActive = true;
+    let timer: ReturnType<typeof setTimeout>;
+    const splashDelay = new Promise<void>(resolve => {
+      timer = setTimeout(resolve, SPLASH_DURATION_MS);
+    });
+
+    Promise.all([loadAuthSession().catch(() => null), splashDelay]).then(
+      ([restoredSession]) => {
+        if (!isActive) {
+          return;
+        }
+
+        setSession(restoredSession);
+        setRoute(restoredSession ? 'login' : 'onboarding');
+      },
+    );
+
+    return () => {
+      isActive = false;
+      clearTimeout(timer);
+    };
   }, []);
 
   if (route === 'splash') {

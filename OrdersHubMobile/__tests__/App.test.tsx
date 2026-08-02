@@ -3,8 +3,11 @@
  */
 
 import React from 'react';
+import { Text } from 'react-native';
 import ReactTestRenderer from 'react-test-renderer';
 import App from '../App';
+import { loadAuthSession } from '../src/features/auth/services/secureTokenStorage';
+import { AuthSession } from '../src/features/auth/types';
 
 jest.mock('@react-native-google-signin/google-signin', () => ({
   GoogleSignin: {
@@ -22,20 +25,73 @@ jest.mock('@react-native-google-signin/google-signin', () => ({
   },
 }));
 
-jest.mock('react-native-keychain', () => ({
-  setGenericPassword: jest.fn().mockResolvedValue({ service: 'test' }),
-  getGenericPassword: jest.fn().mockResolvedValue(false),
-  resetGenericPassword: jest.fn().mockResolvedValue(true),
+jest.mock('../src/features/auth/services/secureTokenStorage', () => ({
+  clearAuthSession: jest.fn(),
+  loadAuthSession: jest.fn(),
+  saveAuthSession: jest.fn(),
 }));
 
-test('renders correctly', async () => {
+const restoredSession: AuthSession = {
+  appToken: 'signed-jwt',
+  user: {
+    id: 42,
+    name: 'Test User',
+    email: 'user@example.com',
+    pictureUrl: null,
+  },
+};
+
+beforeEach(() => {
+  jest.useFakeTimers();
+  jest.resetAllMocks();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+});
+
+it('routes a restored session directly to Home after the splash', async () => {
+  (loadAuthSession as jest.Mock).mockResolvedValue(restoredSession);
   let renderer: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
     renderer = ReactTestRenderer.create(<App />);
   });
 
-  await ReactTestRenderer.act(() => {
-    renderer!.unmount();
-  });
+  await finishSplash();
+
+  expect(textNodesWith(renderer!, 'Test')).toHaveLength(1);
+
+  await ReactTestRenderer.act(() => renderer!.unmount());
 });
+
+it('routes a missing session to onboarding after the splash', async () => {
+  (loadAuthSession as jest.Mock).mockResolvedValue(null);
+  let renderer: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+
+  await finishSplash();
+
+  expect(textNodesWith(renderer!, 'Connect every inbox')).toHaveLength(1);
+
+  await ReactTestRenderer.act(() => renderer!.unmount());
+});
+
+async function finishSplash(): Promise<void> {
+  await ReactTestRenderer.act(async () => {
+    jest.advanceTimersByTime(1400);
+    await Promise.resolve();
+  });
+}
+
+function textNodesWith(
+  renderer: ReactTestRenderer.ReactTestRenderer,
+  children: string,
+) {
+  return renderer.root
+    .findAllByType(Text)
+    .filter(node => node.props.children === children);
+}

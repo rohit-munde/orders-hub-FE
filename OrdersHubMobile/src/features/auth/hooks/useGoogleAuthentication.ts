@@ -6,7 +6,7 @@ import {
 } from '@react-native-google-signin/google-signin';
 import { appConfig } from '../../../config/appConfig';
 import { authenticateWithGoogle } from '../services/authApi';
-import { saveAppToken } from '../services/secureTokenStorage';
+import { saveAuthSession } from '../services/secureTokenStorage';
 import { AuthSession, GoogleAuthenticationRequest } from '../types';
 
 GoogleSignin.configure({
@@ -70,7 +70,7 @@ export function useGoogleAuthentication(
 
     try {
       const session = await authenticateWithGoogle(await getGoogleTokens());
-      await saveAppToken(session.appToken);
+      await saveAuthSession(session);
       onAuthenticated(session);
     } catch (caughtError) {
       setError(messageFor(caughtError));
