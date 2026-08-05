@@ -30,9 +30,10 @@ export function useOrders(
   const [hasNext, setHasNext] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
+  const accountTokenRef = useRef(appToken);
   const resetInFlightRef = useRef(false);
   const resetAppTokenRef = useRef<string | null>(null);
-  const loadMoreInFlightRef = useRef(false);
+  const loadMoreGenerationRef = useRef<number | null>(null);
   const nextPageRef = useRef(0);
   const hasNextRef = useRef(false);
   const generationRef = useRef(0);
@@ -47,6 +48,18 @@ export function useOrders(
 
   const run = useCallback(
     async (force: boolean) => {
+      if (accountTokenRef.current !== appToken) {
+        accountTokenRef.current = appToken;
+        setOrders([]);
+        setLastSyncedAt(null);
+        nextPageRef.current = 0;
+        hasNextRef.current = false;
+        setHasNext(false);
+        setError(null);
+        setLoadMoreError(null);
+        setIsRefreshing(false);
+      }
+
       if (
         resetInFlightRef.current &&
         resetAppTokenRef.current === appToken
@@ -57,6 +70,8 @@ export function useOrders(
       resetInFlightRef.current = true;
       resetAppTokenRef.current = appToken;
       const generation = ++generationRef.current;
+      loadMoreGenerationRef.current = null;
+      setIsLoadingMore(false);
       force ? setIsRefreshing(true) : setIsInitialLoading(true);
       setError(null);
       setLoadMoreError(null);
@@ -108,18 +123,18 @@ export function useOrders(
   const refresh = useCallback(() => run(true), [run]);
 
   const loadMore = useCallback(async () => {
+    const generation = generationRef.current;
     if (
       resetInFlightRef.current ||
-      loadMoreInFlightRef.current ||
+      loadMoreGenerationRef.current === generation ||
       !hasNextRef.current
     ) {
       return;
     }
 
-    loadMoreInFlightRef.current = true;
+    loadMoreGenerationRef.current = generation;
     setIsLoadingMore(true);
     setLoadMoreError(null);
-    const generation = generationRef.current;
 
     try {
       const response = await getOrders(appToken, nextPageRef.current);
@@ -137,8 +152,10 @@ export function useOrders(
       }
       setLoadMoreError(messageFor(caughtError));
     } finally {
-      loadMoreInFlightRef.current = false;
-      setIsLoadingMore(false);
+      if (loadMoreGenerationRef.current === generation) {
+        loadMoreGenerationRef.current = null;
+        setIsLoadingMore(false);
+      }
     }
   }, [appToken, expireSession]);
 
