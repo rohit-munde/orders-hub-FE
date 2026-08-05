@@ -48,7 +48,7 @@ describe('useOrders', () => {
     await renderHook();
 
     expect(syncOrders).toHaveBeenCalledWith('app-jwt', false);
-    expect(getOrders).toHaveBeenCalledWith('app-jwt');
+    expect(getOrders).toHaveBeenCalledWith('app-jwt', 0);
     expect((syncOrders as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan(
       (getOrders as jest.Mock).mock.invocationCallOrder[0],
     );
@@ -59,7 +59,7 @@ describe('useOrders', () => {
   it('uses force=true and reloads orders on pull-to-refresh', async () => {
     await renderHook();
     (getOrders as jest.Mock).mockResolvedValue(
-      response([secondOrder], '2026-08-04T09:30:00Z'),
+      response([secondOrder], 0, false, '2026-08-04T09:30:00Z'),
     );
 
     await ReactTestRenderer.act(async () => latest?.refresh());
@@ -159,6 +159,81 @@ describe('useOrders', () => {
     expect(onSessionExpired).toHaveBeenCalledTimes(1);
     expect(getOrders).not.toHaveBeenCalled();
   });
+
+  it('appends and deduplicates the next page without syncing again', async () => {
+    (getOrders as jest.Mock)
+      .mockResolvedValueOnce(response([firstOrder], 0, true))
+      .mockResolvedValueOnce(response([firstOrder, secondOrder], 1, false));
+    await renderHook();
+
+    await ReactTestRenderer.act(async () => latest?.loadMore());
+
+    expect(getOrders).toHaveBeenLastCalledWith('app-jwt', 1);
+    expect(syncOrders).toHaveBeenCalledTimes(1);
+    expect(latest?.orders.map(order => order.id)).toEqual([21, 22]);
+    expect(latest?.hasNext).toBe(false);
+  });
+
+  it('ignores repeated load-more calls while a page is in flight', async () => {
+    let resolvePage!: (value: OrdersResponse) => void;
+    const pagePromise = new Promise<OrdersResponse>(resolve => {
+      resolvePage = resolve;
+    });
+    (getOrders as jest.Mock)
+      .mockResolvedValueOnce(response([firstOrder], 0, true))
+      .mockReturnValueOnce(pagePromise);
+    await renderHook();
+
+    let firstLoad!: Promise<void>;
+    await ReactTestRenderer.act(async () => {
+      firstLoad = latest!.loadMore();
+      await latest!.loadMore();
+    });
+    expect(getOrders).toHaveBeenCalledTimes(2);
+
+    resolvePage(response([secondOrder], 1, false));
+    await ReactTestRenderer.act(async () => firstLoad);
+  });
+
+  it('does not request another page when the backend reports no next page', async () => {
+    (getOrders as jest.Mock).mockResolvedValue(
+      response([firstOrder], 0, false),
+    );
+    await renderHook();
+
+    await ReactTestRenderer.act(async () => latest?.loadMore());
+
+    expect(getOrders).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves rows and retries only the failed next page', async () => {
+    (getOrders as jest.Mock)
+      .mockResolvedValueOnce(response([firstOrder], 0, true))
+      .mockRejectedValueOnce(new ApiError('Page unavailable', { status: 503 }))
+      .mockResolvedValueOnce(response([secondOrder], 1, false));
+    await renderHook();
+
+    await ReactTestRenderer.act(async () => latest?.loadMore());
+    expect(latest?.orders).toEqual([firstOrder]);
+    expect(latest?.loadMoreError).toBe('Page unavailable');
+
+    await ReactTestRenderer.act(async () => latest?.loadMore());
+    expect(latest?.orders).toEqual([firstOrder, secondOrder]);
+    expect(syncOrders).toHaveBeenCalledTimes(1);
+  });
+
+  it('expires the session when loading another page returns 401', async () => {
+    const onSessionExpired = jest.fn();
+    (getOrders as jest.Mock)
+      .mockResolvedValueOnce(response([firstOrder], 0, true))
+      .mockRejectedValueOnce(new ApiError('Unauthorized', { status: 401 }));
+    await renderHook(onSessionExpired);
+
+    await ReactTestRenderer.act(async () => latest?.loadMore());
+
+    expect(clearAuthSession).toHaveBeenCalledTimes(1);
+    expect(onSessionExpired).toHaveBeenCalledTimes(1);
+  });
 });
 
 async function renderHook(onSessionExpired = jest.fn()) {
@@ -182,11 +257,23 @@ function HookHarness({
 
 function response(
   orders: Order[],
+  page = 0,
+  hasNext = false,
   lastSyncedAt = '2026-08-03T12:00:00Z',
 ): OrdersResponse {
   return {
     lastSyncedAt,
-    orders: { content: orders },
+    orders: {
+      content: orders,
+      pagination: {
+        page,
+        size: 10,
+        totalElements: hasNext ? (page + 2) * 10 : page * 10 + orders.length,
+        totalPages: hasNext ? page + 2 : page + 1,
+        hasNext,
+        hasPrevious: page > 0,
+      },
+    },
   };
 }
 

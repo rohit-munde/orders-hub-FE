@@ -9,9 +9,13 @@ export type UseOrdersResult = {
   lastSyncedAt: string | null;
   isInitialLoading: boolean;
   isRefreshing: boolean;
+  isLoadingMore: boolean;
+  hasNext: boolean;
   error: string | null;
+  loadMoreError: string | null;
   load: () => Promise<void>;
   refresh: () => Promise<void>;
+  loadMore: () => Promise<void>;
 };
 
 export function useOrders(
@@ -22,8 +26,15 @@ export function useOrders(
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasNext, setHasNext] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const inFlightRef = useRef(false);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
+  const resetInFlightRef = useRef(false);
+  const loadMoreInFlightRef = useRef(false);
+  const nextPageRef = useRef(0);
+  const hasNextRef = useRef(false);
+  const generationRef = useRef(0);
 
   const expireSession = useCallback(async () => {
     try {
@@ -35,13 +46,15 @@ export function useOrders(
 
   const run = useCallback(
     async (force: boolean) => {
-      if (inFlightRef.current) {
+      if (resetInFlightRef.current) {
         return;
       }
 
-      inFlightRef.current = true;
+      resetInFlightRef.current = true;
+      const generation = ++generationRef.current;
       force ? setIsRefreshing(true) : setIsInitialLoading(true);
       setError(null);
+      setLoadMoreError(null);
       let syncError: unknown = null;
 
       try {
@@ -56,9 +69,13 @@ export function useOrders(
         }
 
         try {
-          const response = await getOrders(appToken);
+          const response = await getOrders(appToken, 0);
+          if (generation !== generationRef.current) return;
           setOrders(response.orders.content);
           setLastSyncedAt(response.lastSyncedAt);
+          nextPageRef.current = response.orders.pagination.page + 1;
+          hasNextRef.current = response.orders.pagination.hasNext;
+          setHasNext(response.orders.pagination.hasNext);
           setError(syncError ? messageFor(syncError) : null);
         } catch (caughtError) {
           if (isUnauthorized(caughtError)) {
@@ -68,7 +85,7 @@ export function useOrders(
           setError(messageFor(caughtError));
         }
       } finally {
-        inFlightRef.current = false;
+        resetInFlightRef.current = false;
         setIsInitialLoading(false);
         setIsRefreshing(false);
       }
@@ -79,6 +96,41 @@ export function useOrders(
   const load = useCallback(() => run(false), [run]);
   const refresh = useCallback(() => run(true), [run]);
 
+  const loadMore = useCallback(async () => {
+    if (
+      resetInFlightRef.current ||
+      loadMoreInFlightRef.current ||
+      !hasNextRef.current
+    ) {
+      return;
+    }
+
+    loadMoreInFlightRef.current = true;
+    setIsLoadingMore(true);
+    setLoadMoreError(null);
+    const generation = generationRef.current;
+
+    try {
+      const response = await getOrders(appToken, nextPageRef.current);
+      if (generation !== generationRef.current) return;
+      setOrders(current => appendUnique(current, response.orders.content));
+      nextPageRef.current = response.orders.pagination.page + 1;
+      hasNextRef.current = response.orders.pagination.hasNext;
+      setHasNext(response.orders.pagination.hasNext);
+      setLastSyncedAt(response.lastSyncedAt);
+    } catch (caughtError) {
+      if (generation !== generationRef.current) return;
+      if (isUnauthorized(caughtError)) {
+        await expireSession();
+        return;
+      }
+      setLoadMoreError(messageFor(caughtError));
+    } finally {
+      loadMoreInFlightRef.current = false;
+      setIsLoadingMore(false);
+    }
+  }, [appToken, expireSession]);
+
   useEffect(() => {
     load().catch(() => undefined);
   }, [load]);
@@ -88,10 +140,26 @@ export function useOrders(
     lastSyncedAt,
     isInitialLoading,
     isRefreshing,
+    isLoadingMore,
+    hasNext,
     error,
+    loadMoreError,
     load,
     refresh,
+    loadMore,
   };
+}
+
+function appendUnique(current: Order[], incoming: Order[]): Order[] {
+  const seen = new Set(current.map(order => order.id));
+  const appended: Order[] = [];
+  incoming.forEach(order => {
+    if (!seen.has(order.id)) {
+      seen.add(order.id);
+      appended.push(order);
+    }
+  });
+  return [...current, ...appended];
 }
 
 function isUnauthorized(error: unknown): boolean {
