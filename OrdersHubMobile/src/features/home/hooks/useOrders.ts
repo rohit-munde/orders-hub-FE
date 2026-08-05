@@ -31,6 +31,7 @@ export function useOrders(
   const [error, setError] = useState<string | null>(null);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const resetInFlightRef = useRef(false);
+  const resetAppTokenRef = useRef<string | null>(null);
   const loadMoreInFlightRef = useRef(false);
   const nextPageRef = useRef(0);
   const hasNextRef = useRef(false);
@@ -46,11 +47,15 @@ export function useOrders(
 
   const run = useCallback(
     async (force: boolean) => {
-      if (resetInFlightRef.current) {
+      if (
+        resetInFlightRef.current &&
+        resetAppTokenRef.current === appToken
+      ) {
         return;
       }
 
       resetInFlightRef.current = true;
+      resetAppTokenRef.current = appToken;
       const generation = ++generationRef.current;
       force ? setIsRefreshing(true) : setIsInitialLoading(true);
       setError(null);
@@ -69,6 +74,7 @@ export function useOrders(
         }
 
         try {
+          if (generation !== generationRef.current) return;
           const response = await getOrders(appToken, 0);
           if (generation !== generationRef.current) return;
           setOrders(response.orders.content);
@@ -85,9 +91,12 @@ export function useOrders(
           setError(messageFor(caughtError));
         }
       } finally {
-        resetInFlightRef.current = false;
-        setIsInitialLoading(false);
-        setIsRefreshing(false);
+        if (generation === generationRef.current) {
+          resetInFlightRef.current = false;
+          resetAppTokenRef.current = null;
+          setIsInitialLoading(false);
+          setIsRefreshing(false);
+        }
       }
     },
     [appToken, expireSession],
