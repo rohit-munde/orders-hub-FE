@@ -31,8 +31,11 @@ export function HomeScreen({
     lastSyncedAt,
     isInitialLoading,
     isRefreshing,
+    isLoadingMore,
     error,
+    loadMoreError,
     refresh,
+    loadMore,
   } = useOrders(session.appToken, onSessionExpired);
 
   const renderOrder = useCallback(
@@ -71,10 +74,17 @@ export function HomeScreen({
           }
           ListEmptyComponent={<EmptyState error={error} onRefresh={refresh} />}
           ListFooterComponent={
-            orders.length > 0 && error ? (
-              <RetryableError message={error} onRetry={refresh} />
-            ) : null
+            <OrdersFooter
+              hasOrders={orders.length > 0}
+              isLoadingMore={isLoadingMore}
+              loadMoreError={loadMoreError}
+              error={error}
+              onLoadMoreRetry={loadMore}
+              onRefreshRetry={refresh}
+            />
           }
+          onEndReached={() => loadMore().catch(() => undefined)}
+          onEndReachedThreshold={0.4}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
@@ -85,6 +95,38 @@ export function HomeScreen({
       </View>
     </AppScreen>
   );
+}
+
+function OrdersFooter({
+  hasOrders,
+  isLoadingMore,
+  loadMoreError,
+  error,
+  onLoadMoreRetry,
+  onRefreshRetry,
+}: {
+  hasOrders: boolean;
+  isLoadingMore: boolean;
+  loadMoreError: string | null;
+  error: string | null;
+  onLoadMoreRetry: () => Promise<void>;
+  onRefreshRetry: () => Promise<void>;
+}): React.JSX.Element | null {
+  const styles = useStyles().home;
+  if (isLoadingMore) {
+    return (
+      <View style={styles.loadingMore}>
+        <ActivityIndicator color={styles.loading.color} />
+      </View>
+    );
+  }
+  if (loadMoreError) {
+    return <RetryableError message={loadMoreError} onRetry={onLoadMoreRetry} />;
+  }
+  if (hasOrders && error) {
+    return <RetryableError message={error} onRetry={onRefreshRetry} />;
+  }
+  return null;
 }
 
 function OrderSeparator(): React.JSX.Element {

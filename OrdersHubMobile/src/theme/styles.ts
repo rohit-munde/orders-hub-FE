@@ -234,6 +234,10 @@ export function createAppStyles(colors: ThemeColors) {
       },
       error: { color: colors.danger },
       loading: { color: colors.text },
+      loadingMore: {
+        paddingVertical: spacing.lg,
+        alignItems: 'center',
+      },
       emptyState: {
         paddingVertical: spacing.xxl,
         alignItems: 'center',
