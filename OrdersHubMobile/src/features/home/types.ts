@@ -28,10 +28,20 @@ export type Order = {
   items: OrderItem[];
 };
 
+export type PageMetadata = {
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+};
+
 export type OrdersResponse = {
   lastSyncedAt: string | null;
   orders: {
     content: Order[];
+    pagination: PageMetadata;
   };
 };
 
