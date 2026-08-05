@@ -23,6 +23,7 @@ jest.mock('../src/features/auth/services/secureTokenStorage', () => ({
 
 const firstOrder = createOrder(21, 'Amazon');
 const secondOrder = createOrder(22, 'Flipkart');
+const thirdOrder = createOrder(23, 'Myntra');
 const completedSync: OrdersSyncResponse = {
   outcome: 'COMPLETED',
   lastSyncedAt: '2026-08-03T12:00:00Z',
@@ -351,6 +352,149 @@ describe('useOrders', () => {
     expect(newSessionExpired).not.toHaveBeenCalled();
     expect(latest?.orders).toEqual([secondOrder]);
     expect(latest?.error).toBeNull();
+  });
+
+  it('clears account-scoped orders and pagination when the token changes', async () => {
+    (syncOrders as jest.Mock)
+      .mockResolvedValueOnce(completedSync)
+      .mockRejectedValueOnce(new ApiError('New sync failed', { status: 502 }));
+    (getOrders as jest.Mock)
+      .mockResolvedValueOnce(response([firstOrder], 0, true))
+      .mockRejectedValueOnce(new ApiError('New list failed', { status: 503 }));
+    const onSessionExpired = jest.fn();
+
+    let renderer!: ReactTestRenderer.ReactTestRenderer;
+    await ReactTestRenderer.act(async () => {
+      renderer = ReactTestRenderer.create(
+        <HookHarness
+          appToken="old-token"
+          onSessionExpired={onSessionExpired}
+        />,
+      );
+    });
+    expect(latest?.orders).toEqual([firstOrder]);
+    expect(latest?.hasNext).toBe(true);
+
+    await ReactTestRenderer.act(async () => {
+      renderer.update(
+        <HookHarness
+          appToken="new-token"
+          onSessionExpired={onSessionExpired}
+        />,
+      );
+    });
+
+    expect(latest?.orders).toEqual([]);
+    expect(latest?.lastSyncedAt).toBeNull();
+    expect(latest?.hasNext).toBe(false);
+    expect(latest?.error).toBe('New list failed');
+
+    await ReactTestRenderer.act(async () => latest?.loadMore());
+    expect(getOrders).toHaveBeenCalledTimes(2);
+  });
+
+  it('lets a refresh own a new append while the previous append is pending', async () => {
+    let resolveOldAppend!: (value: OrdersResponse) => void;
+    let resolveNewAppend!: (value: OrdersResponse) => void;
+    const oldAppend = new Promise<OrdersResponse>(resolve => {
+      resolveOldAppend = resolve;
+    });
+    const newAppend = new Promise<OrdersResponse>(resolve => {
+      resolveNewAppend = resolve;
+    });
+    (getOrders as jest.Mock)
+      .mockResolvedValueOnce(response([firstOrder], 0, true))
+      .mockReturnValueOnce(oldAppend)
+      .mockResolvedValueOnce(response([secondOrder], 0, true))
+      .mockReturnValueOnce(newAppend);
+    await renderHook();
+
+    let oldLoad!: Promise<void>;
+    await ReactTestRenderer.act(async () => {
+      oldLoad = latest!.loadMore();
+    });
+    await ReactTestRenderer.act(async () => latest?.refresh());
+
+    let newLoad!: Promise<void>;
+    await ReactTestRenderer.act(async () => {
+      newLoad = latest!.loadMore();
+    });
+    expect(getOrders).toHaveBeenCalledTimes(4);
+    expect(latest?.isLoadingMore).toBe(true);
+
+    resolveOldAppend(response([firstOrder], 1, false));
+    await ReactTestRenderer.act(async () => {
+      await oldLoad;
+    });
+    expect(latest?.isLoadingMore).toBe(true);
+    await ReactTestRenderer.act(async () => latest?.loadMore());
+    expect(getOrders).toHaveBeenCalledTimes(4);
+
+    resolveNewAppend(response([thirdOrder], 1, false));
+    await ReactTestRenderer.act(async () => {
+      await newLoad;
+    });
+    expect(latest?.orders).toEqual([secondOrder, thirdOrder]);
+    expect(latest?.isLoadingMore).toBe(false);
+  });
+
+  it('lets a new token append while the previous token append is pending', async () => {
+    let resolveOldAppend!: (value: OrdersResponse) => void;
+    let resolveNewAppend!: (value: OrdersResponse) => void;
+    const oldAppend = new Promise<OrdersResponse>(resolve => {
+      resolveOldAppend = resolve;
+    });
+    const newAppend = new Promise<OrdersResponse>(resolve => {
+      resolveNewAppend = resolve;
+    });
+    (getOrders as jest.Mock)
+      .mockResolvedValueOnce(response([firstOrder], 0, true))
+      .mockReturnValueOnce(oldAppend)
+      .mockResolvedValueOnce(response([secondOrder], 0, true))
+      .mockReturnValueOnce(newAppend);
+    const onSessionExpired = jest.fn();
+
+    let renderer!: ReactTestRenderer.ReactTestRenderer;
+    await ReactTestRenderer.act(async () => {
+      renderer = ReactTestRenderer.create(
+        <HookHarness
+          appToken="old-token"
+          onSessionExpired={onSessionExpired}
+        />,
+      );
+    });
+    let oldLoad!: Promise<void>;
+    await ReactTestRenderer.act(async () => {
+      oldLoad = latest!.loadMore();
+    });
+
+    await ReactTestRenderer.act(async () => {
+      renderer.update(
+        <HookHarness
+          appToken="new-token"
+          onSessionExpired={onSessionExpired}
+        />,
+      );
+    });
+    let newLoad!: Promise<void>;
+    await ReactTestRenderer.act(async () => {
+      newLoad = latest!.loadMore();
+    });
+    expect(getOrders).toHaveBeenCalledTimes(4);
+    expect(latest?.isLoadingMore).toBe(true);
+
+    resolveOldAppend(response([firstOrder], 1, false));
+    await ReactTestRenderer.act(async () => {
+      await oldLoad;
+    });
+    expect(latest?.isLoadingMore).toBe(true);
+
+    resolveNewAppend(response([thirdOrder], 1, false));
+    await ReactTestRenderer.act(async () => {
+      await newLoad;
+    });
+    expect(latest?.orders).toEqual([secondOrder, thirdOrder]);
+    expect(latest?.isLoadingMore).toBe(false);
   });
 });
 
