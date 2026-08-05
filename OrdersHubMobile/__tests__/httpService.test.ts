@@ -1,4 +1,5 @@
 import { httpService } from '../src/services/http/httpService';
+import { ApiError } from '../src/services/http/ApiError';
 
 describe('httpService success responses', () => {
   afterEach(() => jest.restoreAllMocks());
@@ -47,6 +48,62 @@ describe('httpService success responses', () => {
       },
     });
   });
+});
+
+it('yesta', async () => {
+  mockResponse(422, {
+    timeStamp: '2026-08-05T22:11:00',
+    status: 422,
+    error: 'Unprocessable Entity',
+    message: 'Validation failed.',
+    path: '/api/v1/orders',
+    validationErrors: { force: 'must be a boolean' },
+  });
+
+  await expect(httpService.get('/api/v1/orders')).rejects.toEqual(
+    expect.objectContaining<Partial<ApiError>>({
+      name: 'ApiError',
+      status: 422,
+      error: 'Unprocessable Entity',
+      message: 'Validation failed.',
+      path: '/api/v1/orders',
+      timeStamp: '2026-08-05T22:11:00',
+      validationErrors: { force: 'must be a boolean' },
+    }),
+  );
+});
+
+it('uses a safe fallback for a malformed HTTP error body', async () => {
+  mockResponse(503, null);
+  await expect(httpService.get('/api/v1/orders')).rejects.toEqual(
+    expect.objectContaining({ status: 503, message: 'Request failed (503).' }),
+  );
+});
+
+it('maps a network failure to a status-less ApiError', async () => {
+  jest.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
+  await expect(httpService.get('/api/v1/orders')).rejects.toEqual(
+    expect.objectContaining({
+      name: 'ApiError',
+      status: null,
+      message: 'Could not reach Orders Hub. Check your connection and try again.',
+    }),
+  );
+});
+
+it.each([
+  null,
+  { success: false, message: 'No payload.', payload: {} },
+  { success: true, message: 'Missing payload.' },
+])('rejects malformed successful envelope %#', async body => {
+  mockResponse(200, body);
+  await expect(httpService.get('/api/v1/orders')).rejects.toEqual(
+    expect.objectContaining({
+      name: 'ApiError',
+      status: null,
+      message: 'The backend returned an invalid response.',
+    }),
+  );
 });
 
 function mockResponse(status: number, body: unknown) {
