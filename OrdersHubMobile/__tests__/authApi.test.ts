@@ -39,7 +39,11 @@ describe('authenticateWithGoogle', () => {
     const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
       status: 200,
-      json: jest.fn().mockResolvedValue(backendResponse),
+      json: jest.fn().mockResolvedValue({
+        success: true,
+        message: 'Authenticated.',
+        payload: backendResponse,
+      }),
     } as unknown as Response);
 
     const session = await authenticateWithGoogle({
@@ -52,6 +56,10 @@ describe('authenticateWithGoogle', () => {
       expect.stringContaining('/api/v1/auth/google'),
       expect.objectContaining({
         method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           idToken: 'google-id-token',
           serverAuthCode: 'google-server-auth-code',
