@@ -203,6 +203,11 @@ export function createAppStyles(colors: ThemeColors) {
 
     home: StyleSheet.create({
       screen: { flex: 1 },
+      initialLoading: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+      },
       listContent: {
         paddingHorizontal: spacing.lg,
         paddingBottom: spacing.xl,
@@ -214,6 +219,12 @@ export function createAppStyles(colors: ThemeColors) {
         fontSize: typography.body,
         fontWeight: '600',
       },
+      lastSynced: {
+        marginTop: -spacing.sm,
+        marginBottom: spacing.md,
+        color: colors.textMuted,
+        fontSize: typography.caption,
+      },
       separator: { height: spacing.md },
       footer: {
         paddingVertical: spacing.lg,
@@ -223,6 +234,45 @@ export function createAppStyles(colors: ThemeColors) {
       },
       error: { color: colors.danger },
       loading: { color: colors.text },
+      emptyState: {
+        paddingVertical: spacing.xxl,
+        alignItems: 'center',
+      },
+      emptyTitle: {
+        color: colors.text,
+        fontSize: typography.body,
+        fontWeight: '600',
+        textAlign: 'center',
+      },
+      emptyDescription: {
+        marginTop: spacing.sm,
+        color: colors.textMuted,
+        fontSize: typography.caption,
+        lineHeight: 20,
+        textAlign: 'center',
+      },
+      retryButton: {
+        marginTop: spacing.lg,
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.sm,
+        borderRadius: radii.pill,
+        backgroundColor: colors.primary,
+      },
+      retryText: { color: colors.onPrimary, fontWeight: '600' },
+      errorCard: {
+        marginTop: spacing.lg,
+        padding: spacing.md,
+        borderRadius: radii.md,
+        backgroundColor: colors.dangerSurface,
+        alignItems: 'center',
+        gap: spacing.sm,
+      },
+      errorText: {
+        color: colors.danger,
+        fontSize: typography.caption,
+        textAlign: 'center',
+      },
+      errorAction: { color: colors.danger, fontWeight: '700' },
     }),
 
     homeHeader: StyleSheet.create({
@@ -376,11 +426,18 @@ export function createAppStyles(colors: ThemeColors) {
         fontWeight: '600',
       },
       price: { color: colors.text, fontSize: 17, fontWeight: '600' },
-      inbox: {
+      orderNumber: {
         marginTop: spacing.xs,
         color: colors.textMuted,
         fontSize: typography.caption,
       },
+      placedAt: {
+        marginTop: 2,
+        color: colors.textMuted,
+        fontSize: 12,
+      },
+      items: { marginTop: spacing.sm, gap: 2 },
+      itemText: { color: colors.text, fontSize: typography.caption },
       badges: {
         marginTop: spacing.sm,
         flexDirection: 'row',
@@ -396,28 +453,6 @@ export function createAppStyles(colors: ThemeColors) {
         justifyContent: 'center',
       },
       statusText: { fontSize: 13, fontWeight: '600' },
-      otpBadge: {
-        minHeight: 28,
-        paddingHorizontal: spacing.sm,
-        borderWidth: 1,
-        borderColor: colors.text,
-        borderRadius: radii.pill,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-      },
-      otpLabel: {
-        color: colors.textMuted,
-        fontSize: 11,
-        fontWeight: '700',
-        letterSpacing: 0.8,
-      },
-      otpValue: {
-        color: colors.text,
-        fontSize: typography.caption,
-        fontWeight: '700',
-        letterSpacing: 1.2,
-      },
     }),
   };
 }

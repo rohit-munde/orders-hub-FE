@@ -53,17 +53,21 @@ describe('useOrders', () => {
       (getOrders as jest.Mock).mock.invocationCallOrder[0],
     );
     expect(latest?.orders).toEqual([firstOrder]);
+    expect(latest?.lastSyncedAt).toBe('2026-08-03T12:00:00Z');
   });
 
   it('uses force=true and reloads orders on pull-to-refresh', async () => {
     await renderHook();
-    (getOrders as jest.Mock).mockResolvedValue(response([secondOrder]));
+    (getOrders as jest.Mock).mockResolvedValue(
+      response([secondOrder], '2026-08-04T09:30:00Z'),
+    );
 
     await ReactTestRenderer.act(async () => latest?.refresh());
 
     expect(syncOrders).toHaveBeenLastCalledWith('app-jwt', true);
     expect(getOrders).toHaveBeenCalledTimes(2);
     expect(latest?.orders).toEqual([secondOrder]);
+    expect(latest?.lastSyncedAt).toBe('2026-08-04T09:30:00Z');
     expect(latest?.isRefreshing).toBe(false);
   });
 
@@ -93,7 +97,44 @@ describe('useOrders', () => {
 
     expect(getOrders).toHaveBeenCalledTimes(2);
     expect(latest?.orders).toEqual([firstOrder]);
-    expect(latest?.error).toMatch(/Gmail/i);
+    expect(latest?.error).toBe(
+      'Gmail sync is temporarily unavailable. Please try again.',
+    );
+  });
+
+  it('shows the Gmail reconnect copy for a 409 and still loads orders', async () => {
+    (syncOrders as jest.Mock).mockRejectedValue(
+      new ApiError('Backend conflict', { status: 409 }),
+    );
+
+    await renderHook();
+
+    expect(latest?.orders).toEqual([firstOrder]);
+    expect(latest?.error).toBe(
+      'Connect or reconnect Gmail to sync your orders.',
+    );
+  });
+
+  it('uses an unknown ApiError message when no status-specific copy exists', async () => {
+    (getOrders as jest.Mock).mockRejectedValue(
+      new ApiError('The backend returned an invalid orders response.'),
+    );
+
+    await renderHook();
+
+    expect(latest?.error).toBe(
+      'The backend returned an invalid orders response.',
+    );
+  });
+
+  it('uses the safe fallback for a non-ApiError failure', async () => {
+    (getOrders as jest.Mock).mockRejectedValue(new Error('socket exploded'));
+
+    await renderHook();
+
+    expect(latest?.error).toBe(
+      'Orders could not be loaded. Check your connection and try again.',
+    );
   });
 
   it('preserves the exact backend-provided order', async () => {
@@ -139,9 +180,12 @@ function HookHarness({
   return null;
 }
 
-function response(orders: Order[]): OrdersResponse {
+function response(
+  orders: Order[],
+  lastSyncedAt = '2026-08-03T12:00:00Z',
+): OrdersResponse {
   return {
-    lastSyncedAt: '2026-08-03T12:00:00Z',
+    lastSyncedAt,
     orders: { content: orders },
   };
 }
