@@ -125,6 +125,7 @@ export function useOrders(
   const loadMore = useCallback(async () => {
     const generation = generationRef.current;
     if (
+      accountTokenRef.current !== appToken ||
       resetInFlightRef.current ||
       loadMoreGenerationRef.current === generation ||
       !hasNextRef.current
@@ -163,15 +164,17 @@ export function useOrders(
     load().catch(() => undefined);
   }, [load]);
 
+  const ownsAccountState = accountTokenRef.current === appToken;
+
   return {
-    orders,
-    lastSyncedAt,
-    isInitialLoading,
-    isRefreshing,
-    isLoadingMore,
-    hasNext,
-    error,
-    loadMoreError,
+    orders: ownsAccountState ? orders : [],
+    lastSyncedAt: ownsAccountState ? lastSyncedAt : null,
+    isInitialLoading: ownsAccountState ? isInitialLoading : true,
+    isRefreshing: ownsAccountState ? isRefreshing : false,
+    isLoadingMore: ownsAccountState ? isLoadingMore : false,
+    hasNext: ownsAccountState ? hasNext : false,
+    error: ownsAccountState ? error : null,
+    loadMoreError: ownsAccountState ? loadMoreError : null,
     load,
     refresh,
     loadMore,
