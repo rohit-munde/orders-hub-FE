@@ -39,6 +39,14 @@ const ordersResponse = {
         ],
       },
     ],
+    pagination: {
+      page: 0,
+      size: 10,
+      totalElements: 21,
+      totalPages: 3,
+      hasNext: true,
+      hasPrevious: false,
+    },
   },
 };
 
@@ -70,10 +78,10 @@ describe('ordersService', () => {
   it('loads orders without changing nullable backend fields', async () => {
     const fetchMock = mockSuccess(ordersResponse);
 
-    await expect(getOrders('app-jwt')).resolves.toEqual(ordersResponse);
+    await expect(getOrders('app-jwt', 0)).resolves.toEqual(ordersResponse);
 
     expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('/api/v1/orders'),
+      expect.stringContaining('/api/v1/orders?page=0&size=10'),
       {
         method: 'GET',
         headers: {
@@ -81,6 +89,43 @@ describe('ordersService', () => {
           Authorization: 'Bearer app-jwt',
         },
       },
+    );
+  });
+
+  it('requests a later ten-record page', async () => {
+    const fetchMock = mockSuccess({
+      ...ordersResponse,
+      orders: {
+        ...ordersResponse.orders,
+        pagination: {
+          ...ordersResponse.orders.pagination,
+          page: 2,
+          hasNext: false,
+          hasPrevious: true,
+        },
+      },
+    });
+
+    await getOrders('app-jwt', 2);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/orders?page=2&size=10'),
+      expect.any(Object),
+    );
+  });
+
+  it('rejects an orders response without pagination metadata', async () => {
+    mockSuccess({
+      ...ordersResponse,
+      orders: { content: ordersResponse.orders.content },
+    });
+
+    await expect(getOrders('app-jwt', 0)).rejects.toEqual(
+      expect.objectContaining<Partial<ApiError>>({
+        name: 'ApiError',
+        status: null,
+        message: 'The backend returned an invalid orders response.',
+      }),
     );
   });
 
@@ -98,7 +143,7 @@ describe('ordersService', () => {
       }),
     } as unknown as Response);
 
-    await expect(getOrders('secret-app-jwt')).rejects.toEqual(
+    await expect(getOrders('secret-app-jwt', 0)).rejects.toEqual(
       expect.objectContaining<Partial<ApiError>>({
         name: 'ApiError',
         status: 409,
@@ -114,7 +159,7 @@ describe('ordersService', () => {
   it('maps an unreachable backend to a retryable service error', async () => {
     jest.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
 
-    await expect(getOrders('app-jwt')).rejects.toEqual(
+    await expect(getOrders('app-jwt', 0)).rejects.toEqual(
       expect.objectContaining<Partial<ApiError>>({
         name: 'ApiError',
         status: null,
