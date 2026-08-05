@@ -496,6 +496,66 @@ describe('useOrders', () => {
     expect(latest?.orders).toEqual([secondOrder, thirdOrder]);
     expect(latest?.isLoadingMore).toBe(false);
   });
+
+  it('never returns old account state during the first new-token render', async () => {
+    let resolveNewTokenSync!: (value: OrdersSyncResponse) => void;
+    const newTokenSync = new Promise<OrdersSyncResponse>(resolve => {
+      resolveNewTokenSync = resolve;
+    });
+    (syncOrders as jest.Mock)
+      .mockResolvedValueOnce(completedSync)
+      .mockReturnValueOnce(newTokenSync);
+    (getOrders as jest.Mock)
+      .mockResolvedValueOnce(response([firstOrder], 0, true))
+      .mockResolvedValueOnce(response([secondOrder]));
+    let firstNewTokenRender:
+      | Pick<UseOrdersResult, 'orders' | 'lastSyncedAt' | 'hasNext'>
+      | undefined;
+    const captureRender = (appToken: string, result: UseOrdersResult) => {
+      if (appToken === 'new-token' && !firstNewTokenRender) {
+        firstNewTokenRender = {
+          orders: result.orders,
+          lastSyncedAt: result.lastSyncedAt,
+          hasNext: result.hasNext,
+        };
+      }
+    };
+    const onSessionExpired = jest.fn();
+
+    let renderer!: ReactTestRenderer.ReactTestRenderer;
+    await ReactTestRenderer.act(async () => {
+      renderer = ReactTestRenderer.create(
+        <HookHarness
+          appToken="old-token"
+          onSessionExpired={onSessionExpired}
+          onRender={captureRender}
+        />,
+      );
+    });
+    expect(latest?.orders).toEqual([firstOrder]);
+
+    await ReactTestRenderer.act(async () => {
+      renderer.update(
+        <HookHarness
+          appToken="new-token"
+          onSessionExpired={onSessionExpired}
+          onRender={captureRender}
+        />,
+      );
+    });
+
+    expect(firstNewTokenRender).toEqual({
+      orders: [],
+      lastSyncedAt: null,
+      hasNext: false,
+    });
+
+    resolveNewTokenSync(completedSync);
+    await ReactTestRenderer.act(async () => {
+      await newTokenSync;
+    });
+    expect(latest?.orders).toEqual([secondOrder]);
+  });
 });
 
 async function renderHook(onSessionExpired = jest.fn()) {
@@ -511,11 +571,14 @@ async function renderHook(onSessionExpired = jest.fn()) {
 function HookHarness({
   appToken,
   onSessionExpired,
+  onRender,
 }: {
   appToken: string;
   onSessionExpired: () => void;
+  onRender?: (appToken: string, result: UseOrdersResult) => void;
 }): null {
   latest = useOrders(appToken, onSessionExpired);
+  onRender?.(appToken, latest);
   return null;
 }
 
