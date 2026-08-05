@@ -66,6 +66,7 @@ export function useOrders(
         try {
           await syncOrders(appToken, force);
         } catch (caughtError) {
+          if (generation !== generationRef.current) return;
           if (isUnauthorized(caughtError)) {
             await expireSession();
             return;
@@ -84,6 +85,7 @@ export function useOrders(
           setHasNext(response.orders.pagination.hasNext);
           setError(syncError ? messageFor(syncError) : null);
         } catch (caughtError) {
+          if (generation !== generationRef.current) return;
           if (isUnauthorized(caughtError)) {
             await expireSession();
             return;
