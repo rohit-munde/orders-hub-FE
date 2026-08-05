@@ -1,38 +1,46 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 import { AppTheme, useAppTheme } from '../../../theme/AppThemeProvider';
-import { OrderStatus, OrderSummary } from '../types';
+import { Order, OrderStatus } from '../types';
 
 type OrderRowProps = {
-  order: OrderSummary;
+  order: Order;
 };
-
-const currencyFormatter = new Intl.NumberFormat('en-IN', {
-  style: 'currency',
-  currency: 'INR',
-  maximumFractionDigits: 0,
-});
 
 export function OrderRow({ order }: OrderRowProps): React.JSX.Element {
   const { theme } = useAppTheme();
   const styles = theme.styles.orderRow;
+  const merchant = order.brandName ?? order.merchantKey ?? 'Unknown merchant';
   const status = getStatusPresentation(theme)[order.status];
 
   return (
     <View style={styles.card}>
-      <View style={[styles.merchant, { backgroundColor: order.merchantColor }]}>
-        <Text style={styles.merchantInitial}>{order.merchantInitial}</Text>
+      <View style={[styles.merchant, { backgroundColor: theme.colors.primary }]}>
+        <Text style={styles.merchantInitial}>{merchant.charAt(0).toUpperCase()}</Text>
       </View>
 
       <View style={styles.details}>
         <View style={styles.titleRow}>
-          <Text numberOfLines={1} style={styles.title}>
-            {order.title}
+          <Text numberOfLines={1} style={styles.title}>{merchant}</Text>
+          <Text style={styles.price}>
+            {formatAmount(order.billAmount, order.currency)}
           </Text>
-          <Text style={styles.price}>{currencyFormatter.format(order.price)}</Text>
         </View>
 
-        <Text numberOfLines={1} style={styles.inbox}>✉ {order.inbox}</Text>
+        <Text style={styles.orderNumber}>{order.orderNo}</Text>
+        {order.placedAt ? (
+          <Text style={styles.placedAt}>{formatDate(order.placedAt)}</Text>
+        ) : null}
+
+        {order.items.length > 0 ? (
+          <View style={styles.items}>
+            {order.items.map(item => (
+              <Text key={item.id} style={styles.itemText}>
+                {item.productName} ×{item.quantity}
+              </Text>
+            ))}
+          </View>
+        ) : null}
 
         <View style={styles.badges}>
           <View style={[styles.statusBadge, { backgroundColor: status.background }]}>
@@ -40,19 +48,31 @@ export function OrderRow({ order }: OrderRowProps): React.JSX.Element {
               {status.label}
             </Text>
           </View>
-
-          {order.otp ? (
-            <View
-              accessibilityLabel={`Delivery OTP ${order.otp}`}
-              style={styles.otpBadge}>
-              <Text style={styles.otpLabel}>OTP</Text>
-              <Text selectable style={styles.otpValue}>{order.otp}</Text>
-            </View>
-          ) : null}
         </View>
       </View>
     </View>
   );
+}
+
+function formatAmount(amount: number | null, currency: string | null): string {
+  if (amount === null) {
+    return 'Amount unavailable';
+  }
+
+  try {
+    return new Intl.NumberFormat(undefined, currency ? {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: 2,
+    } : { maximumFractionDigits: 2 }).format(amount);
+  } catch {
+    return `${currency ?? ''} ${amount.toLocaleString()}`.trim();
+  }
+}
+
+function formatDate(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 }
 
 function getStatusPresentation(theme: AppTheme): Record<
@@ -60,26 +80,33 @@ function getStatusPresentation(theme: AppTheme): Record<
   { label: string; foreground: string; background: string }
 > {
   const { colors } = theme;
+  const ordered = {
+    foreground: colors.orderedText,
+    background: colors.orderedSurface,
+  };
+  const inTransit = {
+    foreground: colors.inTransitText,
+    background: colors.inTransitSurface,
+  };
   return {
-    ordered: {
-      label: 'Ordered',
-      foreground: colors.orderedText,
-      background: colors.orderedSurface,
-    },
-    inTransit: {
-      label: 'In transit',
-      foreground: colors.inTransitText,
-      background: colors.inTransitSurface,
-    },
-    outForDelivery: {
+    UNKNOWN: { label: 'Unknown', ...ordered },
+    CONFIRMED: { label: 'Confirmed', ...ordered },
+    DISPATCHED: { label: 'Dispatched', ...inTransit },
+    SHIPPED: { label: 'Shipped', ...inTransit },
+    OUT_FOR_DELIVERY: {
       label: 'Out for delivery',
       foreground: colors.outForDeliveryText,
       background: colors.outForDeliverySurface,
     },
-    delivered: {
+    DELIVERED: {
       label: 'Delivered',
       foreground: colors.deliveredText,
       background: colors.deliveredSurface,
+    },
+    CANCELLED: {
+      label: 'Cancelled',
+      foreground: colors.danger,
+      background: colors.dangerSurface,
     },
   };
 }
