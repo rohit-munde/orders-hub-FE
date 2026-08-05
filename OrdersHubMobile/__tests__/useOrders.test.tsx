@@ -234,24 +234,59 @@ describe('useOrders', () => {
     expect(clearAuthSession).toHaveBeenCalledTimes(1);
     expect(onSessionExpired).toHaveBeenCalledTimes(1);
   });
+
+  it('ignores an old token response and loads page zero for the new token', async () => {
+    let resolveOldToken!: (value: OrdersResponse) => void;
+    const oldTokenResponse = new Promise<OrdersResponse>(resolve => {
+      resolveOldToken = resolve;
+    });
+    (getOrders as jest.Mock)
+      .mockReturnValueOnce(oldTokenResponse)
+      .mockResolvedValueOnce(response([secondOrder]));
+
+    let renderer!: ReactTestRenderer.ReactTestRenderer;
+    await ReactTestRenderer.act(async () => {
+      renderer = ReactTestRenderer.create(
+        <HookHarness appToken="old-token" onSessionExpired={jest.fn()} />,
+      );
+    });
+
+    await ReactTestRenderer.act(async () => {
+      renderer.update(
+        <HookHarness appToken="new-token" onSessionExpired={jest.fn()} />,
+      );
+    });
+
+    expect(getOrders).toHaveBeenLastCalledWith('new-token', 0);
+    expect(latest?.orders).toEqual([secondOrder]);
+
+    resolveOldToken(response([firstOrder]));
+    await ReactTestRenderer.act(async () => {
+      await oldTokenResponse;
+    });
+
+    expect(latest?.orders).toEqual([secondOrder]);
+  });
 });
 
 async function renderHook(onSessionExpired = jest.fn()) {
   let renderer: ReactTestRenderer.ReactTestRenderer;
   await ReactTestRenderer.act(async () => {
     renderer = ReactTestRenderer.create(
-      <HookHarness onSessionExpired={onSessionExpired} />,
+      <HookHarness appToken="app-jwt" onSessionExpired={onSessionExpired} />,
     );
   });
   return renderer!;
 }
 
 function HookHarness({
+  appToken,
   onSessionExpired,
 }: {
+  appToken: string;
   onSessionExpired: () => void;
 }): null {
-  latest = useOrders('app-jwt', onSessionExpired);
+  latest = useOrders(appToken, onSessionExpired);
   return null;
 }
 
