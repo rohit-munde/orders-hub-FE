@@ -267,6 +267,91 @@ describe('useOrders', () => {
 
     expect(latest?.orders).toEqual([secondOrder]);
   });
+
+  it('ignores an old token sync rejection after the token changes', async () => {
+    let rejectOldSync!: (reason: unknown) => void;
+    const oldTokenSync = new Promise<OrdersSyncResponse>((_, reject) => {
+      rejectOldSync = reject;
+    });
+    (syncOrders as jest.Mock)
+      .mockReturnValueOnce(oldTokenSync)
+      .mockResolvedValueOnce(completedSync);
+    (getOrders as jest.Mock).mockResolvedValue(response([secondOrder]));
+    const oldSessionExpired = jest.fn();
+    const newSessionExpired = jest.fn();
+
+    let renderer!: ReactTestRenderer.ReactTestRenderer;
+    await ReactTestRenderer.act(async () => {
+      renderer = ReactTestRenderer.create(
+        <HookHarness
+          appToken="old-token"
+          onSessionExpired={oldSessionExpired}
+        />,
+      );
+    });
+    await ReactTestRenderer.act(async () => {
+      renderer.update(
+        <HookHarness
+          appToken="new-token"
+          onSessionExpired={newSessionExpired}
+        />,
+      );
+    });
+    expect(latest?.orders).toEqual([secondOrder]);
+
+    rejectOldSync(new ApiError('Unauthorized', { status: 401 }));
+    await ReactTestRenderer.act(async () => {
+      await oldTokenSync.catch(() => undefined);
+    });
+
+    expect(clearAuthSession).not.toHaveBeenCalled();
+    expect(oldSessionExpired).not.toHaveBeenCalled();
+    expect(newSessionExpired).not.toHaveBeenCalled();
+    expect(latest?.orders).toEqual([secondOrder]);
+    expect(latest?.error).toBeNull();
+  });
+
+  it('ignores an old token page-zero rejection after the token changes', async () => {
+    let rejectOldPage!: (reason: unknown) => void;
+    const oldTokenPage = new Promise<OrdersResponse>((_, reject) => {
+      rejectOldPage = reject;
+    });
+    (getOrders as jest.Mock)
+      .mockReturnValueOnce(oldTokenPage)
+      .mockResolvedValueOnce(response([secondOrder]));
+    const oldSessionExpired = jest.fn();
+    const newSessionExpired = jest.fn();
+
+    let renderer!: ReactTestRenderer.ReactTestRenderer;
+    await ReactTestRenderer.act(async () => {
+      renderer = ReactTestRenderer.create(
+        <HookHarness
+          appToken="old-token"
+          onSessionExpired={oldSessionExpired}
+        />,
+      );
+    });
+    await ReactTestRenderer.act(async () => {
+      renderer.update(
+        <HookHarness
+          appToken="new-token"
+          onSessionExpired={newSessionExpired}
+        />,
+      );
+    });
+    expect(latest?.orders).toEqual([secondOrder]);
+
+    rejectOldPage(new ApiError('Unauthorized', { status: 401 }));
+    await ReactTestRenderer.act(async () => {
+      await oldTokenPage.catch(() => undefined);
+    });
+
+    expect(clearAuthSession).not.toHaveBeenCalled();
+    expect(oldSessionExpired).not.toHaveBeenCalled();
+    expect(newSessionExpired).not.toHaveBeenCalled();
+    expect(latest?.orders).toEqual([secondOrder]);
+    expect(latest?.error).toBeNull();
+  });
 });
 
 async function renderHook(onSessionExpired = jest.fn()) {
