@@ -28,9 +28,18 @@ export function OrderRow({ order }: OrderRowProps): React.JSX.Element {
         </View>
 
         <Text style={styles.orderNumber}>{order.orderNo}</Text>
-        {order.placedAt ? (
-          <Text style={styles.placedAt}>{formatDate(order.placedAt)}</Text>
-        ) : null}
+        <View style={styles.metaRow}>
+          {order.placedAt ? (
+            <Text numberOfLines={1} style={styles.placedAt}>
+              {formatDate(order.placedAt)}
+            </Text>
+          ) : null}
+          <View style={[styles.statusBadge, { backgroundColor: status.background }]}>
+            <Text style={[styles.statusText, { color: status.foreground }]}>
+              {status.label}
+            </Text>
+          </View>
+        </View>
 
         {order.items.length > 0 ? (
           <View style={styles.items}>
@@ -41,14 +50,6 @@ export function OrderRow({ order }: OrderRowProps): React.JSX.Element {
             ))}
           </View>
         ) : null}
-
-        <View style={styles.badges}>
-          <View style={[styles.statusBadge, { backgroundColor: status.background }]}>
-            <Text style={[styles.statusText, { color: status.foreground }]}>
-              {status.label}
-            </Text>
-          </View>
-        </View>
       </View>
     </View>
   );
@@ -72,7 +73,16 @@ function formatAmount(amount: number | null, currency: string | null): string {
 
 function formatDate(value: string): string {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date);
 }
 
 function getStatusPresentation(theme: AppTheme): Record<

@@ -436,22 +436,22 @@ export function createAppStyles(colors: ThemeColors) {
         fontSize: typography.caption,
       },
       placedAt: {
-        marginTop: 2,
+        flex: 1,
         color: colors.textMuted,
-        fontSize: 12,
+        fontSize: 13,
       },
       items: { marginTop: spacing.sm, gap: 2 },
       itemText: { color: colors.text, fontSize: typography.caption },
-      badges: {
+      metaRow: {
         marginTop: spacing.sm,
         flexDirection: 'row',
-        flexWrap: 'wrap',
         alignItems: 'center',
-        gap: spacing.sm,
+        justifyContent: 'space-between',
+        gap: spacing.md,
       },
       statusBadge: {
         minHeight: 28,
-        paddingHorizontal: spacing.md,
+        paddingHorizontal: spacing.sm,
         borderRadius: radii.pill,
         alignItems: 'center',
         justifyContent: 'center',
