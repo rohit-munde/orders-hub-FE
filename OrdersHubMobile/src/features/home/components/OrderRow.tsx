@@ -20,11 +20,18 @@ export function OrderRow({ order }: OrderRowProps): React.JSX.Element {
       </View>
 
       <View style={styles.details}>
-        <View style={styles.titleRow}>
+        <View style={[styles.titleRow, { alignItems: 'flex-start' }]}>
           <Text numberOfLines={1} style={styles.title}>{merchant}</Text>
-          <Text style={styles.price}>
-            {formatAmount(order.billAmount, order.currency)}
-          </Text>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={styles.price}>
+              {formatAmount(order.billAmount, order.currency)}
+            </Text>
+            {order.refundAmount !== null && order.refundAmount !== undefined ? (
+              <Text style={{ color: theme.colors.danger, fontSize: 12, fontWeight: '600', marginTop: 2 }}>
+                Refunded: {formatAmount(order.refundAmount, order.currency)}
+              </Text>
+            ) : null}
+          </View>
         </View>
 
         <Text style={styles.orderNumber}>{order.orderNo}</Text>
@@ -115,6 +122,11 @@ function getStatusPresentation(theme: AppTheme): Record<
     },
     CANCELLED: {
       label: 'Cancelled',
+      foreground: colors.danger,
+      background: colors.dangerSurface,
+    },
+    REFUNDED: {
+      label: 'Refunded',
       foreground: colors.danger,
       background: colors.dangerSurface,
     },

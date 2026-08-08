@@ -4,7 +4,7 @@ const LOCAL_BACKEND_PORT = 8080;
 
 export function resolveLocalApiBaseUrl(
   scriptUrl: string | undefined,
-  platform: string,
+  _platform: string,
 ): string {
   const metroHost = scriptUrl?.match(/^https?:\/\/(\[[^\]]+\]|[^/:]+)/i)?.[1];
   // Using 'localhost' as fallback for both platforms. On Android, this supports

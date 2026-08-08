@@ -84,12 +84,17 @@ export function HomeScreen({
           ListHeaderComponent={
             <View>
               <HomeHeader name={session.user.name} />
-              <Text style={styles.sectionTitle}>Orders</Text>
-              {relativeSyncTime ? (
-                <Text style={styles.lastSynced}>
-                  Last synced {relativeSyncTime}
-                </Text>
-              ) : null}
+              <View style={styles.headerRow}>
+                <Text style={styles.sectionTitle}>Orders</Text>
+                {relativeSyncTime ? (
+                  <View style={styles.syncContainer}>
+                    <View style={styles.syncDotBadge}>
+                      <View style={styles.syncDotInner} />
+                    </View>
+                    <Text style={styles.syncText}>Synced {relativeSyncTime}</Text>
+                  </View>
+                ) : null}
+              </View>
             </View>
           }
           ListEmptyComponent={<EmptyState error={error} onRefresh={refresh} />}

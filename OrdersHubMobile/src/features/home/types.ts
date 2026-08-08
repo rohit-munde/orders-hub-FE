@@ -5,7 +5,8 @@ export type OrderStatus =
   | 'SHIPPED'
   | 'OUT_FOR_DELIVERY'
   | 'DELIVERED'
-  | 'CANCELLED';
+  | 'CANCELLED'
+  | 'REFUNDED';
 
 export type OrderItem = {
   id: number;
@@ -21,6 +22,7 @@ export type Order = {
   brandName: string | null;
   orderNo: string;
   billAmount: number | null;
+  refundAmount: number | null;
   currency: string | null;
   paid: boolean | null;
   status: OrderStatus;

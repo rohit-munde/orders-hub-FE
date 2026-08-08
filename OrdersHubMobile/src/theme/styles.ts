@@ -212,16 +212,38 @@ export function createAppStyles(colors: ThemeColors) {
         paddingHorizontal: spacing.lg,
         paddingBottom: spacing.xl,
       },
-      sectionTitle: {
+      headerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         marginTop: spacing.xl,
         marginBottom: spacing.md,
+      },
+      sectionTitle: {
         color: colors.text,
         fontSize: typography.body,
         fontWeight: '600',
       },
-      lastSynced: {
-        marginTop: -spacing.sm,
-        marginBottom: spacing.md,
+      syncContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+      },
+      syncDotBadge: {
+        width: 16,
+        height: 16,
+        borderRadius: 8,
+        backgroundColor: colors.outForDeliverySurface,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 6,
+      },
+      syncDotInner: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: colors.outForDeliveryText,
+      },
+      syncText: {
         color: colors.textMuted,
         fontSize: typography.caption,
       },
