@@ -27,6 +27,7 @@ export async function getOrders(
     !Array.isArray(payload?.orders?.content) ||
     !isPageMetadata(payload?.orders?.pagination)
   ) {
+    //Implement HadnlerErrorHook
     throw new ApiError('The backend returned an invalid orders response.');
   }
 
