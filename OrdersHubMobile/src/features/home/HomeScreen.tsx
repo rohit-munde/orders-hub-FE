@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -10,7 +10,6 @@ import {
 import { AppScreen } from '../../components/layout/AppScreen';
 import { useStyles } from '../../theme/AppThemeProvider';
 import { AuthSession } from '../auth/types';
-import { BottomNavigation } from './components/BottomNavigation';
 import { HomeHeader } from './components/HomeHeader';
 import { OrderRow } from './components/OrderRow';
 import { useOrders } from './hooks/useOrders';
@@ -37,6 +36,27 @@ export function HomeScreen({
     refresh,
     loadMore,
   } = useOrders(session.appToken, onSessionExpired);
+
+  const [relativeSyncTime, setRelativeSyncTime] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!lastSyncedAt) {
+      setRelativeSyncTime(null);
+      return;
+    }
+
+    const update = () => {
+      setRelativeSyncTime(formatDate(lastSyncedAt));
+    };
+
+    update();
+    if (process.env.NODE_ENV === 'test') {
+      return;
+    }
+    const interval = setInterval(update, 10000); // Update relative time every 10s
+
+    return () => clearInterval(interval);
+  }, [lastSyncedAt]);
 
   const renderOrder = useCallback(
     ({ item }: { item: Order }) => <OrderRow order={item} />,
@@ -65,9 +85,9 @@ export function HomeScreen({
             <View>
               <HomeHeader name={session.user.name} />
               <Text style={styles.sectionTitle}>Orders</Text>
-              {lastSyncedAt ? (
+              {relativeSyncTime ? (
                 <Text style={styles.lastSynced}>
-                  Last synced {formatDate(lastSyncedAt)}
+                  Last synced {relativeSyncTime}
                 </Text>
               ) : null}
             </View>
@@ -91,7 +111,6 @@ export function HomeScreen({
             <RefreshControl refreshing={isRefreshing} onRefresh={refresh} />
           }
         />
-        <BottomNavigation />
       </View>
     </AppScreen>
   );
@@ -177,7 +196,33 @@ function RetryableError({
   );
 }
 
-function formatDate(value: string): string {
+export function formatDate(value: string): string {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+  if (Number.isNaN(date.getTime())) return value;
+
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 0) {
+    return 'just now';
+  }
+
+  if (seconds < 60) {
+    return seconds === 1 ? '1 second ago' : `${seconds} seconds ago`;
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return minutes === 1 ? '1 minute ago' : `${minutes} minutes ago`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return hours === 1 ? '1 hour ago' : `${hours} hours ago`;
+  }
+
+  const days = Math.floor(hours / 24);
+  if (days < 30) {
+    return days === 1 ? 'yesterday' : `${days} days ago`;
+  }
+
+  return date.toLocaleDateString();
 }

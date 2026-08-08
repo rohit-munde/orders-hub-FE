@@ -2,7 +2,7 @@ import React from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, Text } from 'react-native';
 import ReactTestRenderer from 'react-test-renderer';
 import { AuthSession } from '../src/features/auth/types';
-import { HomeScreen } from '../src/features/home/HomeScreen';
+import { formatDate, HomeScreen } from '../src/features/home/HomeScreen';
 import { useOrders } from '../src/features/home/hooks/useOrders';
 import { AppThemeProvider } from '../src/theme/AppThemeProvider';
 
@@ -57,10 +57,18 @@ const baseHookResult = {
 };
 
 beforeEach(() => {
+  jest.useFakeTimers();
   jest.resetAllMocks();
   refresh.mockResolvedValue(undefined);
   baseLoadMore.mockResolvedValue(undefined);
   (useOrders as jest.Mock).mockReturnValue(baseHookResult);
+});
+
+afterEach(async () => {
+  await ReactTestRenderer.act(async () => {
+    jest.runOnlyPendingTimers();
+  });
+  jest.useRealTimers();
 });
 
 it('renders API order fields and keeps pull-to-refresh connected', async () => {
@@ -177,6 +185,27 @@ it('retries only load-more from the pagination error footer', async () => {
   await ReactTestRenderer.act(async () => retry.props.onPress());
   expect(loadMore).toHaveBeenCalledTimes(1);
   expect(refresh).not.toHaveBeenCalled();
+});
+
+it('formats last synced relative time correctly', () => {
+  const mockNow = new Date('2026-08-09T02:00:00Z').getTime();
+  const dateSpy = jest.spyOn(Date, 'now').mockImplementation(() => mockNow);
+
+  const syncedTimes = [
+    { time: '2026-08-09T01:59:45Z', expected: '15 seconds ago' },
+    { time: '2026-08-09T01:58:00Z', expected: '2 minutes ago' },
+    { time: '2026-08-09T01:00:00Z', expected: '1 hour ago' },
+    { time: '2026-08-08T02:00:00Z', expected: 'yesterday' },
+    { time: '2026-08-09T02:00:05Z', expected: 'just now' }, // future date due to small clock drift
+  ];
+
+  try {
+    for (const { time, expected } of syncedTimes) {
+      expect(formatDate(time)).toBe(expected);
+    }
+  } finally {
+    dateSpy.mockRestore();
+  }
 });
 
 function textContent(children: unknown): string {
