@@ -418,67 +418,101 @@ export function createAppStyles(colors: ThemeColors) {
 
     orderRow: StyleSheet.create({
       card: {
-        flexDirection: 'row',
         padding: spacing.md,
         borderWidth: 1,
         borderColor: colors.border,
         borderRadius: radii.lg,
         backgroundColor: colors.surface,
-        gap: spacing.md,
       },
-      merchant: {
+      topSection: {
+        flexDirection: 'row',
+        alignItems: 'center',
+      },
+      merchantBadge: {
         width: 54,
         height: 54,
-        borderRadius: radii.md,
+        borderRadius: 14,
         alignItems: 'center',
         justifyContent: 'center',
       },
       merchantInitial: {
         color: colors.onMerchant,
         fontSize: 24,
-        fontWeight: '500',
-      },
-      details: { flex: 1, minWidth: 0 },
-      titleRow: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
-        gap: spacing.sm,
-      },
-      title: {
-        flex: 1,
-        color: colors.text,
-        fontSize: typography.body,
-        lineHeight: 24,
         fontWeight: '600',
       },
-      price: { color: colors.text, fontSize: 17, fontWeight: '600' },
-      orderNumber: {
-        marginTop: spacing.xs,
+      merchantInfo: {
+        flex: 1,
+        marginLeft: spacing.md,
+        marginRight: spacing.sm,
+      },
+      merchantName: {
+        color: colors.text,
+        fontSize: typography.body,
+        fontWeight: '700',
+      },
+      placedAt: {
+        marginTop: 2,
+        color: colors.textMuted,
+        fontSize: typography.caption,
+        lineHeight: 18,
+      },
+      priceContainer: {
+        alignItems: 'flex-end',
+      },
+      price: {
+        color: colors.text,
+        fontSize: 20,
+        fontWeight: '700',
+      },
+      refundText: {
+        marginTop: 2,
+        color: colors.danger,
+        fontSize: typography.caption,
+        fontWeight: '600',
+      },
+      divider: {
+        height: 1,
+        backgroundColor: colors.border,
+        marginVertical: spacing.md,
+      },
+      bottomSection: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      },
+      orderNumberRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+      },
+      hashtag: {
         color: colors.textMuted,
         fontSize: typography.caption,
       },
-      placedAt: {
-        flex: 1,
-        color: colors.textMuted,
-        fontSize: 13,
+      orderNumber: {
+        color: colors.text,
+        fontSize: typography.caption,
+        fontWeight: '600',
       },
-      items: { marginTop: spacing.sm, gap: 2 },
-      itemText: { color: colors.text, fontSize: typography.caption },
-      metaRow: {
-        marginTop: spacing.sm,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: spacing.md,
+      copyIconContainer: {
+        marginLeft: 6,
       },
       statusBadge: {
-        minHeight: 28,
-        paddingHorizontal: spacing.sm,
-        borderRadius: radii.pill,
+        flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
+        height: 30,
+        paddingHorizontal: 12,
+        borderRadius: radii.pill,
       },
-      statusText: { fontSize: 13, fontWeight: '600' },
+      statusDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        marginRight: 6,
+      },
+      statusText: {
+        fontSize: 13,
+        fontWeight: '600',
+      },
     }),
   };
 }

@@ -87,10 +87,16 @@ it('renders API order fields and keeps pull-to-refresh connected', async () => {
     .join(' ');
   expect(content).toContain('flipkart.com');
   expect(content).toContain('ORDER-22');
-  expect(content).toContain('Aug 3, 3:30 PM');
+  expect(content).toContain('Aug 3 · 3:30 PM');
   expect(content).toContain('Out for delivery');
-  expect(content).toContain('USB-C Cable ×2');
   expect(content).not.toContain('OTP');
+
+  const copyButton = renderer!.root.findByProps({ accessibilityLabel: 'Copy order ID' });
+  await ReactTestRenderer.act(async () => {
+    copyButton.props.onPress();
+  });
+  const { Clipboard } = require('react-native');
+  expect(Clipboard.setString).toHaveBeenCalledWith('ORDER-22');
 
   await ReactTestRenderer.act(async () => {
     await renderer!.root.findByType(RefreshControl).props.onRefresh();
