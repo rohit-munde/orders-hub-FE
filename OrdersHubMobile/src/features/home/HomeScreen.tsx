@@ -68,7 +68,7 @@ export function HomeScreen({
 
   if (showProfile) {
     return (
-      <ProfilePage onBack={() => setShowProfile(false)} />
+      <ProfilePage session={session} onBack={() => setShowProfile(false)} />
     );
   }
 
