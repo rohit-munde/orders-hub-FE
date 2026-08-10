@@ -14,10 +14,12 @@ import { HomeHeader } from './components/HomeHeader';
 import { OrderRow } from './components/OrderRow';
 import { useOrders } from './hooks/useOrders';
 import { Order } from './types';
+import { ProfilePage } from './components/profile/ProfilePage';
 
 type HomeScreenProps = {
   session: AuthSession;
   onSessionExpired: () => void;
+  onProfilePress: () => void;
 };
 
 export function HomeScreen({
@@ -38,6 +40,7 @@ export function HomeScreen({
   } = useOrders(session.appToken, onSessionExpired);
 
   const [relativeSyncTime, setRelativeSyncTime] = useState<string | null>(null);
+  const [showProfile, setShowProfile] = useState<boolean>(false);
 
   useEffect(() => {
     if (!lastSyncedAt) {
@@ -63,6 +66,12 @@ export function HomeScreen({
     [],
   );
 
+  if (showProfile) {
+    return (
+      <ProfilePage onBack={() => setShowProfile(false)} />
+    );
+  }
+
   if (isInitialLoading && orders.length === 0) {
     return (
       <AppScreen>
@@ -83,7 +92,7 @@ export function HomeScreen({
           ItemSeparatorComponent={OrderSeparator}
           ListHeaderComponent={
             <View>
-              <HomeHeader name={session.user.name} />
+              <HomeHeader name={session.user.name} onProfilePress={() => setShowProfile(true)} />
               <View style={styles.headerRow}>
                 <Text style={styles.sectionTitle}>Orders</Text>
                 {relativeSyncTime ? (
