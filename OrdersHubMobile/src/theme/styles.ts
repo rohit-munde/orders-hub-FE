@@ -514,6 +514,52 @@ export function createAppStyles(colors: ThemeColors) {
         fontWeight: '600',
       },
     }),
+
+    ProfilePage: StyleSheet.create({
+      container: {
+        flex: 1,
+        paddingHorizontal: spacing.lg,
+        paddingTop: spacing.lg,
+      },
+      title: {
+        color: colors.text,
+        fontSize: typography.title,
+        fontWeight: "700",
+        marginBottom: spacing.xl,
+      },
+      profileRow: {
+        flexDirection: "row",
+        alignItems: "center",
+      },
+      avatar: {
+        width: 64,
+        height: 64,
+        borderRadius: radii.pill,
+        backgroundColor: colors.primary,
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: spacing.md,
+      },
+      avatarText: {
+        color: colors.onPrimary,
+        fontSize: 26,
+        fontWeight: "600",
+      },
+      infoContainer: {
+        justifyContent: "center",
+      },
+      name: {
+        color: colors.text,
+        fontSize: typography.body + 2,
+        fontWeight: "700",
+        lineHeight: 26,
+      },
+      stats: {
+        color: colors.textMuted,
+        fontSize: typography.caption,
+        marginTop: spacing.xs,
+      },
+    })
   };
 }
 
