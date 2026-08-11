@@ -19,7 +19,6 @@ import { ProfilePage } from './components/profile/ProfilePage';
 type HomeScreenProps = {
   session: AuthSession;
   onSessionExpired: () => void;
-  onProfilePress: () => void;
 };
 
 export function HomeScreen({
@@ -68,7 +67,11 @@ export function HomeScreen({
 
   if (showProfile) {
     return (
-      <ProfilePage session={session} onBack={() => setShowProfile(false)} />
+      <ProfilePage
+        session={session}
+        onBack={() => setShowProfile(false)}
+        onLogout={onSessionExpired}
+      />
     );
   }
 
