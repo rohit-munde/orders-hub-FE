@@ -56,7 +56,10 @@ export function OrderRow({ order }: OrderRowProps): React.JSX.Element {
               pressed && { opacity: 0.6 },
             ]}
           >
-            <CopyIcon color={theme.colors.textMuted} />
+            <CopyIcon
+              color={theme.colors.textMuted}
+              backgroundColor={theme.colors.surface}
+            />
           </Pressable>
         </View>
 
@@ -71,11 +74,22 @@ export function OrderRow({ order }: OrderRowProps): React.JSX.Element {
   );
 }
 
-function CopyIcon({ color }: { color: string }): React.JSX.Element {
+function CopyIcon({
+  color,
+  backgroundColor,
+}: {
+  color: string;
+  backgroundColor: string;
+}): React.JSX.Element {
   return (
     <View style={copyStyles.container}>
-      <View style={[copyStyles.squareTop, { borderColor: color }]} />
-      <View style={[copyStyles.squareBottom, { borderColor: color }]} />
+      <View style={[copyStyles.sheetBack, { borderColor: color }]} />
+      <View
+        style={[
+          copyStyles.sheetFront,
+          { borderColor: color, backgroundColor: backgroundColor },
+        ]}
+      />
     </View>
   );
 }
@@ -189,26 +203,25 @@ function getStatusPresentation(theme: AppTheme): Record<
 
 const copyStyles = StyleSheet.create({
   container: {
-    width: 14,
-    height: 14,
+    width: 11,
+    height: 12,
     position: 'relative',
   },
-  squareTop: {
-    width: 9,
+  sheetBack: {
+    width: 7,
     height: 9,
-    borderWidth: 1.2,
-    borderRadius: 2,
+    borderWidth: 1.0,
+    borderRadius: 1,
     backgroundColor: 'transparent',
     position: 'absolute',
     top: 0,
     left: 0,
   },
-  squareBottom: {
-    width: 9,
+  sheetFront: {
+    width: 7,
     height: 9,
-    borderWidth: 1.2,
-    borderRadius: 2,
-    backgroundColor: 'transparent',
+    borderWidth: 1.0,
+    borderRadius: 1,
     position: 'absolute',
     bottom: 0,
     right: 0,

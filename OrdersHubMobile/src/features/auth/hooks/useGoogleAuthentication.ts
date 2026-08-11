@@ -15,19 +15,29 @@ GoogleSignin.configure({
   scopes: [...appConfig.googleScopes],
 });
 
-const isActivityUnavailable = (error: unknown): boolean =>
-  error instanceof Error &&
-  error.message.toLowerCase().includes('current activity is null');
+const isActivityUnavailable = (error: unknown): boolean => {
+  if (!error) {
+    return false;
+  }
+  const message = (error as any).message || String(error);
+  return message.toLowerCase().includes('current activity is null');
+};
 
 async function getGoogleTokens(): Promise<GoogleAuthenticationRequest> {
-  try {
-    return await signIn();
-  } catch (error) {
-    if (!isActivityUnavailable(error)) throw error;
-
-    await new Promise<void>(resolve => setTimeout(() => resolve(), 300));
-    return signIn();
+  let attempts = 4;
+  while (attempts > 0) {
+    try {
+      return await signIn();
+    } catch (error) {
+      if (!isActivityUnavailable(error) || attempts === 1) {
+        throw error;
+      }
+      attempts--;
+      // Wait 500ms for the Android Activity to attach/re-establish context
+      await new Promise<void>(resolve => setTimeout(resolve, 500));
+    }
   }
+  return signIn();
 }
 
 async function signIn(): Promise<GoogleAuthenticationRequest> {
