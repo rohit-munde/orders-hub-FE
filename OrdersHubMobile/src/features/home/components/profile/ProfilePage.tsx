@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, BackHandler, Pressable, ActivityIndicator, Alert, Image } from "react-native";
+import { View, Text, StyleSheet, BackHandler, Pressable, ActivityIndicator, Alert, Image, ToastAndroid, Platform } from "react-native";
 import { AppScreen } from "../../../../components/layout/AppScreen";
 import { useAppTheme } from "../../../../theme/AppThemeProvider";
 import { AuthSession } from "../../../auth/types";
@@ -164,8 +164,8 @@ export const ProfilePage = ({ session, userDetails, onBack, onLogout, onAccounts
 
   const handleDisconnect = (id: number, email: string) => {
     Alert.alert(
-      "Disconnect Email",
-      `Are you sure you want to disconnect ${email}?`,
+      "Disconnect Gmail account?",
+      `This will remove ${email} and delete imported orders from this Gmail account.`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -180,22 +180,35 @@ export const ProfilePage = ({ session, userDetails, onBack, onLogout, onAccounts
   const performDisconnect = async (id: number, email: string) => {
     setDisconnectingId(id);
     try {
-      // TODO: Connect your backend disconnect API here when ready.
-      // Example:
-      // await httpService.post(`/api/v1/connected-accounts/${id}/disconnect`, {
-      //   token: session.appToken,
-      // });
+      const response = await httpService.delete<{
+        connectedAccountDeleted: boolean;
+        ordersDeleted: number;
+        emailSourcesDeleted: number;
+        disconnectedEmailId: string;
+      }>(
+        `/api/v1/connected-accounts/google/${id}`,
+        {
+          token: session.appToken,
+          returnFullResponse: true,
+        }
+      );
 
-      // Simulating API delay for UI demonstration
-      await new Promise<void>(resolve => setTimeout(resolve, 800));
-
-      Alert.alert("Success", `Successfully disconnected ${email}`);
+      const successMessage = (response as any).message || "Google account disconnected successfully";
+      if (Platform.OS === 'android') {
+        ToastAndroid.show(successMessage, ToastAndroid.SHORT);
+      } else {
+        Alert.alert("Success", successMessage);
+      }
       
-      // Refresh both user details and connected accounts list
+      // Refresh both user details/orders and connected accounts list
       onAccountsChanged();
-      setAccounts(prev => prev.filter(item => item.id !== id));
+      await fetchAccounts();
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to disconnect account.");
+      if (error instanceof ApiError && error.status === 409) {
+        Alert.alert("Error", error.message);
+      } else {
+        Alert.alert("Error", "Could not disconnect Gmail account. Please try again.");
+      }
     } finally {
       setDisconnectingId(null);
     }
@@ -365,6 +378,11 @@ export const ProfilePage = ({ session, userDetails, onBack, onLogout, onAccounts
       color: colors.danger,
       fontSize: 12,
       fontWeight: "600",
+    },
+    disabledHelperText: {
+      color: colors.textMuted,
+      fontSize: 10,
+      marginTop: 4,
     },
     loadingContainer: {
       paddingVertical: spacing.xl,
@@ -550,22 +568,30 @@ export const ProfilePage = ({ session, userDetails, onBack, onLogout, onAccounts
                         {getSyncStatusText(item)}
                       </Text>
                     </View>
+                    {accounts.length <= 1 && (
+                      <Text style={styles.disabledHelperText} testID="disabled-helper-text">
+                        At least one Gmail account must remain connected.
+                      </Text>
+                    )}
                   </View>
 
-                  {/* Disconnect button is only visible when we have 2 or more emails */}
-                  {accounts.length > 1 && (
-                    <Pressable 
-                      style={styles.disconnectBtn} 
-                      onPress={() => handleDisconnect(item.id, item.email)}
-                      disabled={disconnectingId !== null}
-                    >
-                      {isDeletingThis ? (
-                        <ActivityIndicator size="small" color={colors.danger} style={{ transform: [{ scale: 0.8 }] }} />
-                      ) : (
-                        <Text style={styles.disconnectBtnText}>Disconnect</Text>
-                      )}
-                    </Pressable>
-                  )}
+                  <Pressable 
+                    style={styles.disconnectBtn} 
+                    onPress={() => handleDisconnect(item.id, item.email)}
+                    disabled={accounts.length <= 1 || disconnectingId !== null}
+                    testID={`disconnect-btn-${item.id}`}
+                  >
+                    {isDeletingThis ? (
+                      <ActivityIndicator size="small" color={colors.danger} style={{ transform: [{ scale: 0.8 }] }} />
+                    ) : (
+                      <Text style={[
+                        styles.disconnectBtnText,
+                        (accounts.length <= 1) && { color: colors.textMuted }
+                      ]}>
+                        Disconnect
+                      </Text>
+                    )}
+                  </Pressable>
                 </View>
               );
             })}
