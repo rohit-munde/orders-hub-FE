@@ -4,10 +4,13 @@ const LOCAL_BACKEND_PORT = 8080;
 
 export function resolveLocalApiBaseUrl(
   scriptUrl: string | undefined,
-  platform: string,
+  _platform: string,
 ): string {
   const metroHost = scriptUrl?.match(/^https?:\/\/(\[[^\]]+\]|[^/:]+)/i)?.[1];
-  const fallbackHost = platform === 'android' ? '10.0.2.2' : 'localhost';
+  // Using 'localhost' as fallback for both platforms. On Android, this supports
+  // physical device debugging via `adb reverse tcp:8080 tcp:8080` (which is needed
+  // when scriptURL is undefined under Bridgeless mode or certain debugging configs).
+  const fallbackHost = 'localhost';
 
   return `http://${metroHost ?? fallbackHost}:${LOCAL_BACKEND_PORT}`;
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { LoginScreen } from '../features/auth/LoginScreen';
 import { loadAuthSession } from '../features/auth/services/secureTokenStorage';
 import { AuthSession } from '../features/auth/types';
@@ -22,6 +22,7 @@ export default function App(): React.JSX.Element {
 function AppContent(): React.JSX.Element {
   const [route, setRoute] = useState<AppRoute>('splash');
   const [session, setSession] = useState<AuthSession | null>(null);
+  const handleSessionExpired = useCallback(() => setSession(null), []);
 
   useEffect(() => {
     let isActive = true;
@@ -56,7 +57,12 @@ function AppContent(): React.JSX.Element {
   }
 
   if (session) {
-    return <HomeScreen session={session} />;
+    return (
+      <HomeScreen
+        session={session}
+        onSessionExpired={handleSessionExpired}
+      />
+    );
   }
 
   return <LoginScreen onAuthenticated={setSession} />;
