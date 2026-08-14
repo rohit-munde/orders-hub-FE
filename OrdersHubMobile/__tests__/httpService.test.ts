@@ -48,6 +48,42 @@ describe('httpService success responses', () => {
       },
     });
   });
+
+  it('sends DELETE request with returnFullResponse and returns the full success envelope', async () => {
+    const fullResponse = {
+      success: true,
+      message: 'Google account disconnected successfully',
+      payload: {
+        connectedAccountDeleted: true,
+        ordersDeleted: 3,
+        emailSourcesDeleted: 5,
+        disconnectedEmailId: 'shopper@gmail.com',
+      },
+    };
+
+    const fetchMock = mockResponse(200, fullResponse);
+
+    const result = await httpService.delete<typeof fullResponse.payload>(
+      '/api/v1/connected-accounts/google/123',
+      {
+        token: 'app-jwt',
+        returnFullResponse: true,
+      },
+    );
+
+    expect(result).toEqual(fullResponse);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/connected-accounts/google/123'),
+      {
+        method: 'DELETE',
+        headers: {
+          Accept: 'application/json',
+          Authorization: 'Bearer app-jwt',
+        },
+      },
+    );
+  });
 });
 
 it('yesta', async () => {

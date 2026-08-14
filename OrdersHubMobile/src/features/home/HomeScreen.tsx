@@ -93,7 +93,10 @@ export function HomeScreen({
         userDetails={userDetails}
         onBack={() => setShowProfile(false)}
         onLogout={onSessionExpired}
-        onAccountsChanged={fetchUserDetails}
+        onAccountsChanged={() => {
+          fetchUserDetails();
+          refresh().catch(() => undefined);
+        }}
       />
     );
   }

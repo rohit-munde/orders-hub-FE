@@ -5,6 +5,7 @@ import { ApiSuccessResponse } from './apiTypes';
 export type HttpRequestOptions = {
   token?: string;
   body?: unknown;
+  returnFullResponse?: boolean;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -60,10 +61,10 @@ function isSuccessEnvelope<T>(value: unknown): value is ApiSuccessResponse<T> {
 }
 
 async function request<T>(
-  method: 'GET' | 'POST',
+  method: 'GET' | 'POST' | 'DELETE',
   path: string,
   options: HttpRequestOptions = {},
-): Promise<T> {
+): Promise<any> {
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (options.token) headers.Authorization = `Bearer ${options.token}`;
   if (options.body !== undefined) headers['Content-Type'] = 'application/json';
@@ -89,12 +90,14 @@ async function request<T>(
   if (!isSuccessEnvelope<T>(body)) {
     throw new ApiError('The backend returned an invalid response.');
   }
-  return body.payload;
+  return options.returnFullResponse ? body : body.payload;
 }
 
 export const httpService = {
-  get: <T>(path: string, options?: HttpRequestOptions) =>
+  get: <T>(path: string, options?: HttpRequestOptions): Promise<T> =>
     request<T>('GET', path, options),
-  post: <T>(path: string, options?: HttpRequestOptions) =>
+  post: <T>(path: string, options?: HttpRequestOptions): Promise<T> =>
     request<T>('POST', path, options),
+  delete: <T>(path: string, options?: HttpRequestOptions): Promise<T> =>
+    request<T>('DELETE', path, options),
 };
