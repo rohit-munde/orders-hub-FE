@@ -10,6 +10,31 @@ jest.mock('../src/features/home/hooks/useOrders', () => ({
   useOrders: jest.fn(),
 }));
 
+jest.mock('@react-native-google-signin/google-signin', () => ({
+  GoogleSignin: {
+    configure: jest.fn(),
+    hasPlayServices: jest.fn(),
+    signIn: jest.fn(),
+    revokeAccess: jest.fn(),
+    signOut: jest.fn(),
+  },
+  isErrorWithCode: jest.fn(() => false),
+  statusCodes: {
+    SIGN_IN_CANCELLED: 'SIGN_IN_CANCELLED',
+    IN_PROGRESS: 'IN_PROGRESS',
+    PLAY_SERVICES_NOT_AVAILABLE: 'PLAY_SERVICES_NOT_AVAILABLE',
+  },
+}));
+
+jest.mock('../src/features/auth/services/userApi', () => ({
+  getCurrentUserDetails: jest.fn().mockResolvedValue({
+    name: 'Rohit',
+    pictureUrl: null,
+    connectedInboxCount: 1,
+    trackedOrderCount: 230,
+  }),
+}));
+
 const session: AuthSession = {
   appToken: 'app-jwt',
   user: {
