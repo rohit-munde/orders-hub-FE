@@ -15,6 +15,7 @@ import { OrderRow } from './components/OrderRow';
 import { useOrders } from './hooks/useOrders';
 import { Order } from './types';
 import { ProfilePage } from './components/profile/ProfilePage';
+import { getCurrentUserDetails, UserDetails } from '../auth/services/userApi';
 
 type HomeScreenProps = {
   session: AuthSession;
@@ -40,6 +41,26 @@ export function HomeScreen({
 
   const [relativeSyncTime, setRelativeSyncTime] = useState<string | null>(null);
   const [showProfile, setShowProfile] = useState<boolean>(false);
+  const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
+
+  const fetchUserDetails = useCallback(async () => {
+    try {
+      const details = await getCurrentUserDetails(session.appToken);
+      setUserDetails(details);
+    } catch {
+      // Subtle loading: fallbacks are used on error/loading
+    }
+  }, [session.appToken]);
+
+  useEffect(() => {
+    fetchUserDetails();
+  }, [fetchUserDetails]);
+
+  useEffect(() => {
+    if (lastSyncedAt) {
+      fetchUserDetails();
+    }
+  }, [lastSyncedAt, fetchUserDetails]);
 
   useEffect(() => {
     if (!lastSyncedAt) {
@@ -69,8 +90,10 @@ export function HomeScreen({
     return (
       <ProfilePage
         session={session}
+        userDetails={userDetails}
         onBack={() => setShowProfile(false)}
         onLogout={onSessionExpired}
+        onAccountsChanged={fetchUserDetails}
       />
     );
   }
@@ -95,7 +118,11 @@ export function HomeScreen({
           ItemSeparatorComponent={OrderSeparator}
           ListHeaderComponent={
             <View>
-              <HomeHeader name={session.user.name} onProfilePress={() => setShowProfile(true)} />
+              <HomeHeader
+                name={userDetails?.name ?? session.user.name}
+                pictureUrl={userDetails?.pictureUrl ?? session.user.pictureUrl}
+                onProfilePress={() => setShowProfile(true)}
+              />
               <View style={styles.headerRow}>
                 <Text style={styles.sectionTitle}>Orders</Text>
                 {relativeSyncTime ? (

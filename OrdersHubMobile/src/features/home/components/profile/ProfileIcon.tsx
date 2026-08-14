@@ -1,26 +1,43 @@
-import { Text, View, Button } from "react-native"
-
+import React, { useState } from "react";
+import { Text, Pressable, Image, StyleSheet } from "react-native";
 import { useStyles } from '../../../../theme/AppThemeProvider';
 
 export interface IProfileIconProps {
-    firstName: string;
-    onProfilePress: () => void;
+  firstName: string;
+  pictureUrl?: string | null;
+  onProfilePress: () => void;
 }
 
 export const ProfileIcon = (props: IProfileIconProps) => {
-    const styles = useStyles().homeHeader;
-    const { firstName, onProfilePress } = props;
+  const styles = useStyles().homeHeader;
+  const { firstName, pictureUrl, onProfilePress } = props;
+  const [imageError, setImageError] = useState(false);
 
-    const clickProfile = () => {
-        onProfilePress();
-    }
+  const clickProfile = () => {
+    onProfilePress();
+  };
 
-    return <View style={styles.avatar}>
-        <Button
-            onPress={clickProfile}
-            title={firstName.charAt(0).toUpperCase()}
-            color="#00000000"
-            accessibilityLabel="Open profile"
+  const showImage = pictureUrl && !imageError;
+
+  return (
+    <Pressable
+      onPress={clickProfile}
+      accessibilityRole="button"
+      accessibilityLabel="Open profile"
+      style={[styles.avatar, { overflow: 'hidden' }]}
+    >
+      {showImage ? (
+        <Image
+          source={{ uri: pictureUrl }}
+          style={StyleSheet.absoluteFill}
+          onError={() => setImageError(true)}
+          testID="profile-image"
         />
-    </View>
-}
+      ) : (
+        <Text style={styles.avatarText} testID="fallback-avatar-text">
+          {firstName.charAt(0).toUpperCase()}
+        </Text>
+      )}
+    </Pressable>
+  );
+};

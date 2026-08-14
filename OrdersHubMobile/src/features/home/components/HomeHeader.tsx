@@ -5,6 +5,7 @@ import { ProfileIcon } from './profile/ProfileIcon';
 
 type HomeHeaderProps = {
   name: string;
+  pictureUrl?: string | null;
   onProfilePress: () => void;
 };
 
@@ -15,7 +16,7 @@ function getGreeting(): string {
   return 'Good evening';
 }
 
-export function HomeHeader({ name, onProfilePress }: HomeHeaderProps): React.JSX.Element {
+export function HomeHeader({ name, pictureUrl, onProfilePress }: HomeHeaderProps): React.JSX.Element {
   const styles = useStyles().homeHeader;
   const firstName = name.trim().split(/\s+/)[0] || 'there';
 
@@ -36,7 +37,7 @@ export function HomeHeader({ name, onProfilePress }: HomeHeaderProps): React.JSX
           <View style={styles.notificationDot} />
         </Pressable>
 
-        <ProfileIcon {...{ firstName, onProfilePress }} />
+        <ProfileIcon {...{ firstName, pictureUrl, onProfilePress }} />
 
       </View>
     </View>
