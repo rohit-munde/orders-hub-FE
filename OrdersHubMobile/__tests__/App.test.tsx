@@ -27,6 +27,15 @@ jest.mock('@react-native-google-signin/google-signin', () => ({
   },
 }));
 
+jest.mock('../src/features/auth/services/userApi', () => ({
+  getCurrentUserDetails: jest.fn().mockResolvedValue({
+    name: 'Test User',
+    pictureUrl: null,
+    connectedInboxCount: 1,
+    trackedOrderCount: 230,
+  }),
+}));
+
 jest.mock('../src/features/auth/services/secureTokenStorage', () => ({
   clearAuthSession: jest.fn(),
   loadAuthSession: jest.fn(),
