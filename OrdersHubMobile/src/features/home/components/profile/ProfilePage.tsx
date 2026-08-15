@@ -155,6 +155,13 @@ export const ProfilePage = ({ session, userDetails, onBack, onLogout, onAccounts
       if (error instanceof ApiError && error.status === 409) {
         Alert.alert("Conflict", "This Gmail is already connected to another user");
       } else {
+        if (
+          message.toLowerCase().includes('refresh token') ||
+          message.toLowerCase().includes('revoke')
+        ) {
+          await GoogleSignin.revokeAccess().catch(() => {});
+          await GoogleSignin.signOut().catch(() => {});
+        }
         Alert.alert("Error", message || "Failed to connect Gmail account");
       }
     } finally {

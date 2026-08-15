@@ -1,18 +1,38 @@
 import { NativeModules, Platform } from 'react-native';
 
-const LOCAL_BACKEND_PORT = 8080;
+const PRODUCTION_BACKEND_URL = 'https://orders-hub-be-production.up.railway.app';
+const LOCAL_BACKEND_PORT = 8081;
+
+// Developer toggle to intentionally run against the local backend in development.
+// By default, this is false, so physical devices/production use the production URL by default.
+const FORCE_LOCAL_BACKEND = false;
 
 export function resolveLocalApiBaseUrl(
   scriptUrl: string | undefined,
-  _platform: string,
+  platform: string,
+  forceLocal: boolean = FORCE_LOCAL_BACKEND,
 ): string {
-  const metroHost = scriptUrl?.match(/^https?:\/\/(\[[^\]]+\]|[^/:]+)/i)?.[1];
-  // Using 'localhost' as fallback for both platforms. On Android, this supports
-  // physical device debugging via `adb reverse tcp:8080 tcp:8080` (which is needed
-  // when scriptURL is undefined under Bridgeless mode or certain debugging configs).
-  const fallbackHost = 'localhost';
+  // Check if we are in development mode (__DEV__ is true).
+  // Note: We use typeof __DEV__ check to avoid crashes in non-react-native environments.
+  const isDev = typeof __DEV__ !== 'undefined' ? __DEV__ : true;
+  if (!isDev || !forceLocal) {
+    return PRODUCTION_BACKEND_URL;
+  }
 
-  return `http://${metroHost ?? fallbackHost}:${LOCAL_BACKEND_PORT}`;
+  // Attempt to parse Metro host to determine dynamic local IP
+  const metroHost = scriptUrl?.match(/^https?:\/\/(\[[^\]]+\]|[^/:]+)/i)?.[1];
+  
+  if (metroHost) {
+    // If it's localhost or 127.0.0.1, map to 10.0.2.2 on Android
+    if ((metroHost === 'localhost' || metroHost === '127.0.0.1') && platform === 'android') {
+      return `http://10.0.2.2:${LOCAL_BACKEND_PORT}`;
+    }
+    return `http://${metroHost}:${LOCAL_BACKEND_PORT}`;
+  }
+
+  // Fallbacks when scriptUrl is undefined
+  const fallbackHost = platform === 'android' ? '10.0.2.2' : 'localhost';
+  return `http://${fallbackHost}:${LOCAL_BACKEND_PORT}`;
 }
 
 const metroScriptUrl = NativeModules.SourceCode?.scriptURL as string | undefined;
