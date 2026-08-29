@@ -6,17 +6,17 @@ describe('resolveLocalApiBaseUrl', () => {
 
   beforeEach(() => {
     // Preserve current global.__DEV__ value
-    devBackup = global.__DEV__;
+    devBackup = (global as any).__DEV__;
   });
 
   afterEach(() => {
     // Restore global.__DEV__
-    global.__DEV__ = devBackup;
+    (global as any).__DEV__ = devBackup;
   });
 
   describe('when __DEV__ is false (production build)', () => {
     beforeEach(() => {
-      global.__DEV__ = false;
+      (global as any).__DEV__ = false;
     });
 
     it('always returns the production URL regardless of forceLocal or platform config', () => {
@@ -28,7 +28,7 @@ describe('resolveLocalApiBaseUrl', () => {
 
   describe('when __DEV__ is true (development build)', () => {
     beforeEach(() => {
-      global.__DEV__ = true;
+      (global as any).__DEV__ = true;
     });
 
     describe('when forceLocal is false (default dev behavior)', () => {
@@ -47,7 +47,7 @@ describe('resolveLocalApiBaseUrl', () => {
             'android',
             true,
           ),
-        ).toBe('http://192.168.1.42:8081');
+        ).toBe('http://192.168.1.42:8080');
       });
 
       it('maps localhost or 127.0.0.1 to 10.0.2.2 on Android', () => {
@@ -57,7 +57,7 @@ describe('resolveLocalApiBaseUrl', () => {
             'android',
             true,
           ),
-        ).toBe('http://10.0.2.2:8081');
+        ).toBe('http://10.0.2.2:8080');
 
         expect(
           resolveLocalApiBaseUrl(
@@ -65,7 +65,7 @@ describe('resolveLocalApiBaseUrl', () => {
             'android',
             true,
           ),
-        ).toBe('http://10.0.2.2:8081');
+        ).toBe('http://10.0.2.2:8080');
       });
 
       it('keeps localhost for iOS/web when Metro host is localhost', () => {
@@ -75,12 +75,12 @@ describe('resolveLocalApiBaseUrl', () => {
             'ios',
             true,
           ),
-        ).toBe('http://localhost:8081');
+        ).toBe('http://localhost:8080');
       });
 
       it('uses correct fallback IP when scriptUrl is undefined', () => {
-        expect(resolveLocalApiBaseUrl(undefined, 'android', true)).toBe('http://10.0.2.2:8081');
-        expect(resolveLocalApiBaseUrl(undefined, 'ios', true)).toBe('http://localhost:8081');
+        expect(resolveLocalApiBaseUrl(undefined, 'android', true)).toBe('http://10.0.2.2:8080');
+        expect(resolveLocalApiBaseUrl(undefined, 'ios', true)).toBe('http://localhost:8080');
       });
     });
   });

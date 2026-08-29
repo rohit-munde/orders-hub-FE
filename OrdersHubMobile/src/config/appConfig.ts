@@ -1,11 +1,11 @@
 import { NativeModules, Platform } from 'react-native';
 
 const PRODUCTION_BACKEND_URL = 'https://orders-hub-be-production.up.railway.app';
-const LOCAL_BACKEND_PORT = 8081;
+const LOCAL_BACKEND_PORT = 8080; // Local Spring Boot backend port (Metro bundler uses 8081)
 
 // Developer toggle to intentionally run against the local backend in development.
 // By default, this is false, so physical devices/production use the production URL by default.
-const FORCE_LOCAL_BACKEND = false;
+const FORCE_LOCAL_BACKEND = true;
 
 export function resolveLocalApiBaseUrl(
   scriptUrl: string | undefined,
@@ -21,7 +21,7 @@ export function resolveLocalApiBaseUrl(
 
   // Attempt to parse Metro host to determine dynamic local IP
   const metroHost = scriptUrl?.match(/^https?:\/\/(\[[^\]]+\]|[^/:]+)/i)?.[1];
-  
+
   if (metroHost) {
     // If it's localhost or 127.0.0.1, map to 10.0.2.2 on Android
     if ((metroHost === 'localhost' || metroHost === '127.0.0.1') && platform === 'android') {

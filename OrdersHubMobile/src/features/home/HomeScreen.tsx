@@ -11,7 +11,7 @@ import { AppScreen } from '../../components/layout/AppScreen';
 import { useStyles } from '../../theme/AppThemeProvider';
 import { AuthSession } from '../auth/types';
 import { HomeHeader } from './components/HomeHeader';
-import { OrderRow } from './components/OrderRow';
+import { OrderRow } from './components/OrderRow/OrderRow';
 import { useOrders } from './hooks/useOrders';
 import { Order } from './types';
 import { ProfilePage } from './components/profile/ProfilePage';
