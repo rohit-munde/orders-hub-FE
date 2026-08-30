@@ -12,6 +12,7 @@ import { AuthSession, GoogleAuthenticationRequest } from '../types';
 GoogleSignin.configure({
   webClientId: appConfig.googleWebClientId,
   offlineAccess: true,
+  forceCodeForRefreshToken: true,
   scopes: [...appConfig.googleScopes],
 });
 
@@ -86,7 +87,15 @@ export function useGoogleAuthentication(
       await saveAuthSession(session);
       onAuthenticated(session);
     } catch (caughtError) {
-      setError(messageFor(caughtError));
+      const msg = messageFor(caughtError);
+      if (
+        msg.toLowerCase().includes('refresh token') ||
+        msg.toLowerCase().includes('revoke')
+      ) {
+        await GoogleSignin.revokeAccess().catch(() => {});
+        await GoogleSignin.signOut().catch(() => {});
+      }
+      setError(msg);
     } finally {
       authenticationInProgress.current = false;
       setIsLoading(false);

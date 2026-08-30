@@ -19,6 +19,7 @@ export type OrderItem = {
 export type Order = {
   id: number;
   merchantKey: string | null;
+  logoUrl: string | null;
   brandName: string | null;
   orderNo: string;
   billAmount: number | null;

@@ -611,6 +611,7 @@ function createOrder(id: number, brandName: string): Order {
     brandName,
     orderNo: `ORDER-${id}`,
     billAmount: 1499,
+    refundAmount: null,
     currency: 'INR',
     paid: true,
     status: 'SHIPPED',

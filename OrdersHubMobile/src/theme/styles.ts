@@ -434,6 +434,12 @@ export function createAppStyles(colors: ThemeColors) {
         borderRadius: 14,
         alignItems: 'center',
         justifyContent: 'center',
+        overflow: 'hidden',
+      },
+      merchantLogo: {
+        width: 36,
+        height: 36,
+        resizeMode: 'contain',
       },
       merchantInitial: {
         color: colors.onMerchant,

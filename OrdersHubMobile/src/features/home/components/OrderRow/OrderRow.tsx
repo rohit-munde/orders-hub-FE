@@ -1,7 +1,9 @@
 import React from 'react';
-import { Clipboard, Pressable, StyleSheet, Text, View } from 'react-native';
-import { AppTheme, useAppTheme } from '../../../theme/AppThemeProvider';
-import { Order, OrderStatus } from '../types';
+import { Clipboard, Image, ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppTheme, useAppTheme } from '../../../../theme/AppThemeProvider';
+import { Order, OrderStatus } from '../../types';
+import { CopyIcon } from './components/CopyIcon';
+
 
 type OrderRowProps = {
   order: Order;
@@ -11,13 +13,32 @@ export function OrderRow({ order }: OrderRowProps): React.JSX.Element {
   const { theme } = useAppTheme();
   const styles = theme.styles.orderRow;
   const merchant = order.brandName ?? order.merchantKey ?? 'Unknown merchant';
+  const logoUrl = order.logoUrl ?? '';
   const status = getStatusPresentation(theme)[order.status];
+  const [imageError, setImageError] = React.useState(false);
+
+  const showLogo = Boolean(logoUrl) && !imageError;
 
   return (
     <View style={styles.card}>
       <View style={styles.topSection}>
-        <View style={[styles.merchantBadge, { backgroundColor: getMerchantColor(merchant) }]}>
-          <Text style={styles.merchantInitial}>{merchant.charAt(0).toLowerCase()}</Text>
+        <View
+          style={[
+            styles.merchantBadge,
+            { backgroundColor: showLogo ? '#FFFFFF' : getMerchantColor(merchant) },
+          ]}
+        >
+          {showLogo ? (
+            <Image
+              style={styles.merchantLogo}
+              source={{ uri: logoUrl }}
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <Text style={styles.merchantInitial}>
+              {merchant.charAt(0).toUpperCase()}
+            </Text>
+          )}
         </View>
 
         <View style={styles.merchantInfo}>
@@ -74,25 +95,7 @@ export function OrderRow({ order }: OrderRowProps): React.JSX.Element {
   );
 }
 
-function CopyIcon({
-  color,
-  backgroundColor,
-}: {
-  color: string;
-  backgroundColor: string;
-}): React.JSX.Element {
-  return (
-    <View style={copyStyles.container}>
-      <View style={[copyStyles.sheetBack, { borderColor: color }]} />
-      <View
-        style={[
-          copyStyles.sheetFront,
-          { borderColor: color, backgroundColor: backgroundColor },
-        ]}
-      />
-    </View>
-  );
-}
+
 
 function getMerchantColor(name: string): string {
   const normalized = name.toLowerCase();
@@ -201,29 +204,3 @@ function getStatusPresentation(theme: AppTheme): Record<
   };
 }
 
-const copyStyles = StyleSheet.create({
-  container: {
-    width: 11,
-    height: 12,
-    position: 'relative',
-  },
-  sheetBack: {
-    width: 7,
-    height: 9,
-    borderWidth: 1.0,
-    borderRadius: 1,
-    backgroundColor: 'transparent',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-  },
-  sheetFront: {
-    width: 7,
-    height: 9,
-    borderWidth: 1.0,
-    borderRadius: 1,
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-  },
-});
