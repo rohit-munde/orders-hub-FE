@@ -1,16 +1,16 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, BackHandler, Pressable, ActivityIndicator, Alert, Image, ToastAndroid, Platform } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { View, Text, StyleSheet, BackHandler, Pressable, ActivityIndicator, Alert, Image, ToastAndroid, Platform, ScrollView, Linking } from "react-native";
 import { AppScreen } from "../../../../components/layout/AppScreen";
 import { useAppTheme } from "../../../../theme/AppThemeProvider";
 import { AuthSession } from "../../../auth/types";
 import { spacing, radii, typography } from "../../../../theme/tokens";
 import { clearAuthSession } from "../../../auth/services/secureTokenStorage";
 import { GoogleSignin, statusCodes, isErrorWithCode } from "@react-native-google-signin/google-signin";
-import { appConfig } from "../../../../config/appConfig";
+import { appConfig, legalLinks } from "../../../../config/appConfig";
 import { httpService } from "../../../../services/http/httpService";
 import { ApiError } from "../../../../services/http/ApiError";
 import { formatDate } from "../../HomeScreen";
-import { UserDetails } from "../../../auth/services/userApi";
+import { deleteCurrentUserAccount, UserDetails } from "../../../auth/services/userApi";
 
 export type ConnectedAccount = {
   id: number;
@@ -38,8 +38,9 @@ export const ProfilePage = ({ session, userDetails, onBack, onLogout, onAccounts
   const [isConnecting, setIsConnecting] = useState(false);
   const [disconnectingId, setDisconnectingId] = useState<number | null>(null);
   const [imageError, setImageError] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
-  const fetchAccounts = async () => {
+  const fetchAccounts = useCallback(async () => {
     setIsLoadingAccounts(true);
     setAccountsError(null);
     try {
@@ -61,11 +62,11 @@ export const ProfilePage = ({ session, userDetails, onBack, onLogout, onAccounts
     } finally {
       setIsLoadingAccounts(false);
     }
-  };
+  }, [session.appToken]);
 
   useEffect(() => {
     fetchAccounts();
-  }, []);
+  }, [fetchAccounts]);
 
   useEffect(() => {
     const backAction = () => {
@@ -84,10 +85,54 @@ export const ProfilePage = ({ session, userDetails, onBack, onLogout, onAccounts
   const handleLogout = async () => {
     try {
       await GoogleSignin.signOut();
-    } catch (error) {
+    } catch {
       // Ignore if not logged in or fails
     }
     await clearAuthSession();
+    onLogout();
+  };
+
+  const openLink = (url: string) => {
+    Linking.openURL(url).catch(() => {
+      Alert.alert("Could not open link", url);
+    });
+  };
+
+  const handleDeleteAccount = () => {
+    if (isDeletingAccount) return;
+    Alert.alert(
+      "Delete your account?",
+      "This permanently deletes your OrdersHub account, every imported order and all connected Gmail accounts, and removes OrdersHub's access to your Gmail. This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete account",
+          style: "destructive",
+          onPress: () => {
+            performDeleteAccount();
+          },
+        },
+      ]
+    );
+  };
+
+  const performDeleteAccount = async () => {
+    setIsDeletingAccount(true);
+    try {
+      await deleteCurrentUserAccount(session.appToken);
+    } catch {
+      setIsDeletingAccount(false);
+      Alert.alert(
+        "Could not delete account",
+        "Please check your connection and try again. You can also request deletion from the link in Privacy & data."
+      );
+      return;
+    }
+
+    await GoogleSignin.revokeAccess().catch(() => {});
+    await GoogleSignin.signOut().catch(() => {});
+    await clearAuthSession().catch(() => {});
+    Alert.alert("Account deleted", "Your OrdersHub account and data have been deleted.");
     onLogout();
   };
 
@@ -178,13 +223,13 @@ export const ProfilePage = ({ session, userDetails, onBack, onLogout, onAccounts
         {
           text: "Disconnect",
           style: "destructive",
-          onPress: () => performDisconnect(id, email),
+          onPress: () => performDisconnect(id),
         },
       ]
     );
   };
 
-  const performDisconnect = async (id: number, email: string) => {
+  const performDisconnect = async (id: number) => {
     setDisconnectingId(id);
     try {
       const response = await httpService.delete<{
@@ -260,10 +305,13 @@ export const ProfilePage = ({ session, userDetails, onBack, onLogout, onAccounts
   const ordersText = `${orderCount} ${orderCount === 1 ? 'order' : 'orders'} tracked`;
 
   const styles = StyleSheet.create({
-    container: {
+    scroll: {
       flex: 1,
+    },
+    container: {
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.lg,
+      paddingBottom: spacing.xl,
     },
     title: {
       color: colors.text,
@@ -472,8 +520,10 @@ export const ProfilePage = ({ session, userDetails, onBack, onLogout, onAccounts
       fontSize: typography.body,
     },
     logoutItem: {
-      borderBottomWidth: 0,
       marginTop: spacing.lg,
+    },
+    deleteAccountItem: {
+      borderBottomWidth: 0,
     },
     logoutLabel: {
       color: colors.danger,
@@ -486,7 +536,11 @@ export const ProfilePage = ({ session, userDetails, onBack, onLogout, onAccounts
 
   return (
     <AppScreen>
-      <View style={styles.container}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={styles.title}>Profile</Text>
 
         {/* User Profile Header */}
@@ -607,7 +661,12 @@ export const ProfilePage = ({ session, userDetails, onBack, onLogout, onAccounts
 
         {/* Options List */}
         <View style={styles.menuList}>
-          <Pressable style={styles.menuItem}>
+          <Pressable
+            style={styles.menuItem}
+            onPress={() => openLink(legalLinks.privacyPolicy)}
+            accessibilityRole="link"
+            testID="privacy-policy-link"
+          >
             <View style={styles.menuItemLeft}>
               <Text style={styles.menuIcon}>🛡</Text>
               <Text style={styles.menuLabel}>Privacy & data</Text>
@@ -615,18 +674,15 @@ export const ProfilePage = ({ session, userDetails, onBack, onLogout, onAccounts
             <Text style={styles.chevron}>›</Text>
           </Pressable>
 
-          <Pressable style={styles.menuItem}>
+          <Pressable
+            style={styles.menuItem}
+            onPress={() => openLink(legalLinks.terms)}
+            accessibilityRole="link"
+            testID="terms-link"
+          >
             <View style={styles.menuItemLeft}>
-              <Text style={styles.menuIcon}>🔔</Text>
-              <Text style={styles.menuLabel}>Notifications</Text>
-            </View>
-            <Text style={styles.chevron}>›</Text>
-          </Pressable>
-
-          <Pressable style={styles.menuItem}>
-            <View style={styles.menuItemLeft}>
-              <Text style={styles.menuIcon}>👤</Text>
-              <Text style={styles.menuLabel}>Account</Text>
+              <Text style={styles.menuIcon}>📄</Text>
+              <Text style={styles.menuLabel}>Terms of service</Text>
             </View>
             <Text style={styles.chevron}>›</Text>
           </Pressable>
@@ -638,8 +694,25 @@ export const ProfilePage = ({ session, userDetails, onBack, onLogout, onAccounts
               <Text style={[styles.menuLabel, styles.logoutLabel]}>Log out</Text>
             </View>
           </Pressable>
+
+          <Pressable
+            style={[styles.menuItem, styles.deleteAccountItem]}
+            onPress={handleDeleteAccount}
+            disabled={isDeletingAccount}
+            accessibilityRole="button"
+            testID="delete-account-btn"
+          >
+            <View style={styles.menuItemLeft}>
+              {isDeletingAccount ? (
+                <ActivityIndicator size="small" color={colors.danger} style={styles.menuIcon} />
+              ) : (
+                <Text style={[styles.menuIcon, styles.logoutIcon]}>✕</Text>
+              )}
+              <Text style={[styles.menuLabel, styles.logoutLabel]}>Delete account</Text>
+            </View>
+          </Pressable>
         </View>
-      </View>
+      </ScrollView>
     </AppScreen>
   );
 };

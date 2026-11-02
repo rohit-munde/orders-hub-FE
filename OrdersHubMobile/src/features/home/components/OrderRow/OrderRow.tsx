@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clipboard, Image, ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Clipboard, Image, Pressable, Text, View } from 'react-native';
 import { AppTheme, useAppTheme } from '../../../../theme/AppThemeProvider';
 import { Order, OrderStatus } from '../../types';
 import { CopyIcon } from './components/CopyIcon';

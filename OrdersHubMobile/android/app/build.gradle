@@ -1,7 +1,6 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
-apply plugin: "com.google.gms.google-services"
 
 /**
  * This is the configuration block to customize your React Native Android app.
@@ -61,6 +60,23 @@ react {
 def enableProguardInReleaseBuilds = false
 
 /**
+ * Release settings are read from Gradle properties (-P or ~/.gradle/gradle.properties) or from
+ * environment variables of the same name, so signing secrets never live in this repository.
+ */
+def releaseSetting(String name, String fallback = null) {
+    def value = project.findProperty(name) ?: System.getenv(name)
+    return value ? value.toString() : fallback
+}
+
+def hasUploadKey = ["ORDERSHUB_UPLOAD_STORE_FILE", "ORDERSHUB_UPLOAD_STORE_PASSWORD",
+                    "ORDERSHUB_UPLOAD_KEY_ALIAS", "ORDERSHUB_UPLOAD_KEY_PASSWORD"]
+        .every { releaseSetting(it) != null }
+
+if (!hasUploadKey) {
+    logger.warn("OrdersHub: ORDERSHUB_UPLOAD_* settings not found; release builds will use the debug key and cannot be uploaded to Google Play.")
+}
+
+/**
  * The preferred build flavor of JavaScriptCore (JSC)
  *
  * For example, to use the international variant, you can use:
@@ -78,13 +94,13 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.ordershubmobile"
+    namespace "com.indiedev.ordershub"
     defaultConfig {
-        applicationId "com.ordershubmobile"
+        applicationId "com.indiedev.ordershub"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode releaseSetting("ORDERSHUB_VERSION_CODE", "1").toInteger()
+        versionName releaseSetting("ORDERSHUB_VERSION_NAME", "1.0.0")
     }
     signingConfigs {
         debug {
@@ -93,15 +109,24 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        if (hasUploadKey) {
+            release {
+                storeFile file(releaseSetting("ORDERSHUB_UPLOAD_STORE_FILE"))
+                storePassword releaseSetting("ORDERSHUB_UPLOAD_STORE_PASSWORD")
+                keyAlias releaseSetting("ORDERSHUB_UPLOAD_KEY_ALIAS")
+                keyPassword releaseSetting("ORDERSHUB_UPLOAD_KEY_PASSWORD")
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            // Google Play only accepts bundles signed with your own upload key. Without the
+            // ORDERSHUB_UPLOAD_* settings the release build falls back to the debug key, which is
+            // fine for trying a release build on your own phone but is rejected by Play.
+            signingConfig hasUploadKey ? signingConfigs.release : signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }

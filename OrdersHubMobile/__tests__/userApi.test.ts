@@ -1,4 +1,7 @@
-import { getCurrentUserDetails } from '../src/features/auth/services/userApi';
+import {
+  deleteCurrentUserAccount,
+  getCurrentUserDetails,
+} from '../src/features/auth/services/userApi';
 import { ApiError } from '../src/services/http/ApiError';
 
 const mockUserDetails = {
@@ -50,5 +53,44 @@ describe('getCurrentUserDetails', () => {
     } as unknown as Response);
 
     await expect(getCurrentUserDetails('invalid-token')).rejects.toThrow(ApiError);
+  });
+});
+
+describe('deleteCurrentUserAccount', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('sends an authenticated DELETE for the current user', async () => {
+    const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: jest.fn().mockResolvedValue({
+        success: true,
+        message: 'Account deleted successfully',
+        payload: { accountDeleted: true, connectedAccountsDeleted: 2, ordersDeleted: 14 },
+      }),
+    } as unknown as Response);
+
+    const result = await deleteCurrentUserAccount('app-jwt-token');
+
+    expect(result).toEqual({ accountDeleted: true, connectedAccountsDeleted: 2, ordersDeleted: 14 });
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/api\/v1\/users\/me$/),
+      expect.objectContaining({
+        method: 'DELETE',
+        headers: expect.objectContaining({ Authorization: 'Bearer app-jwt-token' }),
+      }),
+    );
+  });
+
+  it('surfaces backend failures as ApiError', async () => {
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: jest.fn().mockResolvedValue({ status: 401, message: 'Authenticated user ID is missing' }),
+    } as unknown as Response);
+
+    await expect(deleteCurrentUserAccount('expired-token')).rejects.toThrow(ApiError);
   });
 });

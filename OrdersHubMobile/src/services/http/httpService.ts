@@ -80,7 +80,7 @@ async function request<T>(
     });
   } catch {
     throw new ApiError(
-      'Could not reach Orders Hub. Check your connection and try again.',
+      'Could not reach OrdersHub. Check your connection and try again.',
     );
   }
 

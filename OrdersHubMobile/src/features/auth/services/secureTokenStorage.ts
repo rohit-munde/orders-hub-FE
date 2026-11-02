@@ -17,7 +17,7 @@ export async function saveAuthSession(session: AuthSession): Promise<void> {
   );
 
   if (!stored) {
-    throw new Error('The Orders Hub session could not be stored securely.');
+    throw new Error('The OrdersHub session could not be stored securely.');
   }
 }
 

@@ -1,4 +1,4 @@
-package com.ordershubmobile
+package com.indiedev.ordershub
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

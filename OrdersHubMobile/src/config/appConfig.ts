@@ -37,6 +37,16 @@ export function resolveLocalApiBaseUrl(
 
 const metroScriptUrl = NativeModules.SourceCode?.scriptURL as string | undefined;
 
+// Public legal pages, served by GitHub Pages from the docs/ folder of the orders-hub-FE repository.
+// Google Play and Google's OAuth review both need these links to be reachable without signing in.
+const LEGAL_PAGES_BASE_URL = 'https://rohit-munde.github.io/orders-hub-FE';
+
+export const legalLinks = {
+  privacyPolicy: `${LEGAL_PAGES_BASE_URL}/privacy.html`,
+  terms: `${LEGAL_PAGES_BASE_URL}/terms.html`,
+  accountDeletion: `${LEGAL_PAGES_BASE_URL}/delete-account.html`,
+} as const;
+
 export const appConfig = {
   googleWebClientId:
     '519549577564-3i3cth2k7n1093eer7i6g62l58dicctt.apps.googleusercontent.com',

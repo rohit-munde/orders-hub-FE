@@ -122,7 +122,7 @@ it('maps a network failure to a status-less ApiError', async () => {
     expect.objectContaining({
       name: 'ApiError',
       status: null,
-      message: 'Could not reach Orders Hub. Check your connection and try again.',
+      message: 'Could not reach OrdersHub. Check your connection and try again.',
     }),
   );
 });

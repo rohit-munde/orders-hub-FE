@@ -609,6 +609,7 @@ function createOrder(id: number, brandName: string): Order {
     id,
     merchantKey: `${brandName.toLowerCase()}.in`,
     brandName,
+    logoUrl: null,
     orderNo: `ORDER-${id}`,
     billAmount: 1499,
     refundAmount: null,
