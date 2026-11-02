@@ -1,15 +1,20 @@
 import React from 'react';
-import { Clipboard, Image, Platform, Pressable, StyleSheet, Text, ToastAndroid, View } from 'react-native';
+import { ActivityIndicator, Clipboard, Image, Platform, Pressable, StyleSheet, Text, ToastAndroid, View } from 'react-native';
 import { AppTheme, useAppTheme } from '../../../../theme/AppThemeProvider';
-import { Order, OrderStatus } from '../../types';
+import { ApiError } from '../../../../services/http/ApiError';
+import { DeliveryOtp, Order, OrderStatus } from '../../types';
 import { CopyIcon } from './components/CopyIcon';
 
 
 type OrderRowProps = {
   order: Order;
+  /** Looks up the order's delivery OTP in Gmail. Without it, no OTP control is shown. */
+  onRequestDeliveryOtp?: (orderId: number) => Promise<DeliveryOtp>;
 };
 
-export function OrderRow({ order }: OrderRowProps): React.JSX.Element {
+const FINISHED_STATUSES: OrderStatus[] = ['DELIVERED', 'CANCELLED', 'REFUNDED'];
+
+export function OrderRow({ order, onRequestDeliveryOtp }: OrderRowProps): React.JSX.Element {
   const { theme } = useAppTheme();
   const styles = theme.styles.orderRow;
   const merchant = order.brandName ?? order.merchantKey ?? 'Unknown merchant';
@@ -92,42 +97,121 @@ export function OrderRow({ order }: OrderRowProps): React.JSX.Element {
         </View>
       </View>
 
-      {order.deliveryOtp ? <DeliveryOtp otp={order.deliveryOtp} /> : null}
+      {onRequestDeliveryOtp && !FINISHED_STATUSES.includes(order.status) ? (
+        <DeliveryOtpControl orderId={order.id} requestOtp={onRequestDeliveryOtp} />
+      ) : null}
     </View>
   );
 }
 
-function DeliveryOtp({ otp }: { otp: string }): React.JSX.Element {
+type OtpState =
+  | { kind: 'idle' }
+  | { kind: 'loading' }
+  | { kind: 'found'; otp: DeliveryOtp }
+  | { kind: 'message'; text: string };
+
+function DeliveryOtpControl({
+  orderId,
+  requestOtp,
+}: {
+  orderId: number;
+  requestOtp: (orderId: number) => Promise<DeliveryOtp>;
+}): React.JSX.Element {
   const { theme } = useAppTheme();
   const colors = theme.colors;
-  const copy = () => {
+  const [state, setState] = React.useState<OtpState>({ kind: 'idle' });
+
+  const load = async () => {
+    setState({ kind: 'loading' });
+    try {
+      setState({ kind: 'found', otp: await requestOtp(orderId) });
+    } catch (error) {
+      setState({ kind: 'message', text: otpErrorMessage(error) });
+    }
+  };
+
+  const copy = (otp: string) => {
     Clipboard.setString(otp);
     if (Platform.OS === 'android') {
       ToastAndroid.show('OTP copied', ToastAndroid.SHORT);
     }
   };
 
+  const rowStyle = [otpStyles.row, { backgroundColor: colors.surface, borderColor: colors.border }];
+
+  if (state.kind === 'found') {
+    return (
+      <View style={rowStyle} testID="delivery-otp">
+        <View style={otpStyles.labelColumn}>
+          <Text style={[otpStyles.label, { color: colors.textMuted }]}>Delivery OTP</Text>
+          {state.otp.receivedAt ? (
+            <Text style={[otpStyles.hint, { color: colors.textMuted }]}>
+              From email {formatPlacedDate(state.otp.receivedAt)}
+            </Text>
+          ) : null}
+        </View>
+        <Text style={[otpStyles.code, { color: colors.text }]} selectable>
+          {state.otp.otp}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Copy delivery OTP"
+          onPress={() => copy(state.otp.otp)}
+          hitSlop={8}
+          testID="copy-delivery-otp"
+          style={({ pressed }) => [otpStyles.copy, pressed && otpStyles.pressed]}
+        >
+          <CopyIcon color={colors.textMuted} backgroundColor={colors.surface} />
+        </Pressable>
+      </View>
+    );
+  }
+
   return (
-    <View
-      style={[otpStyles.row, { backgroundColor: colors.surface, borderColor: colors.border }]}
-      testID="delivery-otp"
-    >
-      <Text style={[otpStyles.label, { color: colors.textMuted }]}>Delivery OTP</Text>
-      <Text style={[otpStyles.code, { color: colors.text }]} selectable>
-        {otp}
-      </Text>
+    <View style={rowStyle}>
+      {state.kind === 'message' ? (
+        <Text style={[otpStyles.message, { color: colors.textMuted }]} testID="delivery-otp-message">
+          {state.text}
+        </Text>
+      ) : (
+        <Text style={[otpStyles.message, { color: colors.textMuted }]}>
+          Courier asking for an OTP?
+        </Text>
+      )}
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Copy delivery OTP"
-        onPress={copy}
+        accessibilityLabel="Show delivery OTP"
+        onPress={load}
+        disabled={state.kind === 'loading'}
         hitSlop={8}
-        testID="copy-delivery-otp"
-        style={({ pressed }) => [otpStyles.copy, pressed && otpStyles.pressed]}
+        testID="show-delivery-otp"
+        style={({ pressed }) => [otpStyles.action, pressed && otpStyles.pressed]}
       >
-        <CopyIcon color={colors.textMuted} backgroundColor={colors.surface} />
+        {state.kind === 'loading' ? (
+          <ActivityIndicator size="small" color={colors.text} />
+        ) : (
+          <Text style={[otpStyles.actionText, { color: colors.text }]}>
+            {state.kind === 'message' ? 'Try again' : 'Show OTP'}
+          </Text>
+        )}
       </Pressable>
     </View>
   );
+}
+
+function otpErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.status === 404) {
+      return 'No OTP in your email yet. Couriers often send it by SMS.';
+    }
+    if (error.status === 409) {
+      return 'Reconnect Gmail in Profile to look up OTPs.';
+    }
+    if (error.status === null) {
+      return 'You seem to be offline. Check your connection.';
+    }
+  }
+  return 'Could not check your email right now.';
 }
 
 const otpStyles = StyleSheet.create({
@@ -140,10 +224,30 @@ const otpStyles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
   },
+  labelColumn: {
+    marginRight: 10,
+  },
   label: {
     fontSize: 12,
     fontWeight: '600',
-    marginRight: 10,
+  },
+  hint: {
+    fontSize: 10,
+    marginTop: 2,
+  },
+  message: {
+    flex: 1,
+    fontSize: 12,
+    marginRight: 8,
+  },
+  action: {
+    minWidth: 72,
+    alignItems: 'flex-end',
+  },
+  actionText: {
+    fontSize: 13,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
   code: {
     flex: 1,

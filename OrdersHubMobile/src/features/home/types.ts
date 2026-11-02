@@ -28,8 +28,6 @@ export type Order = {
   paid: boolean | null;
   status: OrderStatus;
   placedAt: string | null;
-  /** Present only while the order is on its way and the email contained an OTP. */
-  deliveryOtp?: string | null;
   items: OrderItem[];
 };
 
@@ -60,4 +58,10 @@ export type OrdersSyncResponse = {
   skippedCount: number;
   ignoredCount: number;
   failedCount: number;
+};
+
+/** A delivery OTP read from Gmail when the user asked for it. Never stored. */
+export type DeliveryOtp = {
+  otp: string;
+  receivedAt: string | null;
 };

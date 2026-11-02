@@ -13,6 +13,8 @@ import { AuthSession } from '../auth/types';
 import { HomeHeader } from './components/HomeHeader';
 import { OrderRow } from './components/OrderRow/OrderRow';
 import { useOrders } from './hooks/useOrders';
+import { getDeliveryOtp } from './services/ordersService';
+import { ApiError } from '../../services/http/ApiError';
 import { Order } from './types';
 import { ProfilePage } from './components/profile/ProfilePage';
 import { getCurrentUserDetails, UserDetails } from '../auth/services/userApi';
@@ -81,9 +83,25 @@ export function HomeScreen({
     return () => clearInterval(interval);
   }, [lastSyncedAt]);
 
+  const requestDeliveryOtp = useCallback(
+    async (orderId: number) => {
+      try {
+        return await getDeliveryOtp(session.appToken, orderId);
+      } catch (otpError) {
+        if (otpError instanceof ApiError && otpError.status === 401) {
+          onSessionExpired();
+        }
+        throw otpError;
+      }
+    },
+    [session.appToken, onSessionExpired],
+  );
+
   const renderOrder = useCallback(
-    ({ item }: { item: Order }) => <OrderRow order={item} />,
-    [],
+    ({ item }: { item: Order }) => (
+      <OrderRow order={item} onRequestDeliveryOtp={requestDeliveryOtp} />
+    ),
+    [requestDeliveryOtp],
   );
 
   if (showProfile) {

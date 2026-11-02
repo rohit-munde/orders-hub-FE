@@ -1,6 +1,6 @@
 import { ApiError } from '../../../services/http/ApiError';
 import { httpService } from '../../../services/http/httpService';
-import { OrdersResponse, OrdersSyncResponse, PageMetadata } from '../types';
+import { DeliveryOtp, OrdersResponse, OrdersSyncResponse, PageMetadata } from '../types';
 
 export const ORDERS_PAGE_SIZE = 10;
 
@@ -12,6 +12,16 @@ export function syncOrders(
     `/api/v1/orders/sync?force=${force}`,
     { token: appToken },
   );
+}
+
+/** Asks the backend to look up the order's delivery OTP in Gmail right now. */
+export function getDeliveryOtp(
+  appToken: string,
+  orderId: number,
+): Promise<DeliveryOtp> {
+  return httpService.get<DeliveryOtp>(`/api/v1/orders/${orderId}/delivery-otp`, {
+    token: appToken,
+  });
 }
 
 export async function getOrders(

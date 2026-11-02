@@ -156,18 +156,18 @@ Don't declare location, contacts, photos, device IDs, app activity or crash logs
 **Graphics:**
 - App icon: 512 × 512 PNG (Claude can generate this from the app icon)
 - Feature graphic: 1024 × 500 PNG (Claude can generate this)
-- Phone screenshots: 2 to 8, taken on your phone. Suggested: home screen with orders, an order showing its delivery OTP, the profile screen with connected inboxes, and the sign-in screen.
+- Phone screenshots: 2 to 8, taken on your phone. Suggested: home screen with orders, an order after tapping "Show OTP", the profile screen with connected inboxes, and the sign-in screen.
 
 ## Step 10: Closed test, then production
 
 1. **Testing → Closed testing → Create track**, upload the same `.aab` (or a newer one), and add at least **12 testers** by email (a Google Group is easiest). New personal accounts need **12 testers opted in for 14 days in a row** before they can apply for production. Ask testers to actually open the app during those days.
 2. Testers sign in through the "unverified app" warning (Advanced → Go to OrdersHub). They count toward the 100-user limit for unverified apps.
 3. **While the test runs, submit the Gmail permission for verification:** Google Auth Platform → Verification Center. You need:
-   - **Scope justification:** *"OrdersHub is a package and order-tracking app. It reads only order and shipping confirmation emails, matched by sender and subject, to show the user's orders, their items, amounts, delivery status and delivery OTPs in the app. gmail.metadata is not enough because order numbers, items, amounts and OTPs are only in the message body. OTPs are stored encrypted and deleted once the order is delivered. Message bodies are processed in memory and never stored. Extracted order data is never sold, shared for ads or used to train AI models, and is deleted when the user disconnects Gmail or deletes their account."*
+   - **Scope justification:** *"OrdersHub is a package and order-tracking app. It reads only order and shipping confirmation emails, matched by sender and subject, to show the user's orders, their items, amounts and delivery status in the app. When the user taps "Show OTP" on an order, it searches their recent mail for that order number and reads the delivery OTP to show them. The OTP is never stored. gmail.metadata is not enough because order numbers, items, amounts and OTPs are only in the message body. Message bodies are processed in memory and never stored. Extracted order data is never sold, shared for ads or used to train AI models, and is deleted when the user disconnects Gmail or deletes their account."*
    - **Demo video** (unlisted YouTube, 2 to 3 minutes, screen recording from your phone):
      1. Open the app and tap "Continue with Google".
      2. Show the consent screen, with its URL and the Gmail permission visible.
-     3. Show orders appearing on the home screen.
+     3. Show orders appearing on the home screen, then tap "Show OTP" on an order that is on its way.
      4. Open Profile: show the privacy policy link, disconnecting Gmail, and deleting the account.
    - Google may then ask for a **CASA security assessment** (see the feasibility report). Do what they ask before going to production.
 4. After 14 days: **Publishing overview → Apply for production.** Answer the questions about your closed test honestly.
