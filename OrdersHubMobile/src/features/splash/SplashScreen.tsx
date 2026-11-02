@@ -10,12 +10,12 @@ export function SplashScreen(): React.JSX.Element {
     <AppScreen dark contentStyle={styles.screen}>
       <View style={styles.brandGroup}>
         <BrandMark />
-        <Text style={styles.title}>OrderHub</Text>
+        <Text style={styles.title}>OrdersHub</Text>
         <Text style={styles.subtitle}>Every order. One place.</Text>
       </View>
 
       <View style={styles.footer}>
-        <SecurityLabel dark label="Bank-grade encryption" />
+        <SecurityLabel dark label="Read-only Gmail access · never sold" />
       </View>
     </AppScreen>
   );

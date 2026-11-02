@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OrdersHub Privacy Policy</title>
+  <meta name="description" content="How OrdersHub collects, uses, shares and deletes your data, including data from Gmail.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header>
+    <span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"><path d="M12 2 21 12 12 22 3 12Z"/><path d="M12 2 8.5 12 12 22 15.5 12Z"/><path d="M3 12h5.5M15.5 12H21"/></svg></span>
+    <a href="index.html">OrdersHub</a>
+  </header>
+
+  <h1>Privacy Policy</h1>
+  <p class="meta">Effective 2 November 2026</p>
+
+  <p>OrdersHub is an Android app that finds your online order and shipping confirmation emails in Gmail and shows them as one list of orders, with each order's status, items and amount. This policy explains what data OrdersHub uses, why, who it is shared with, and how you can delete it.</p>
+
+  <div class="callout">
+    <strong>In short:</strong> OrdersHub reads only order-related emails, with read-only access. It never sends email, never changes your mailbox, never sells your data, never uses it for advertising, and never uses it to train AI models. You can disconnect Gmail or delete your account at any time from inside the app.
+  </div>
+
+  <h2>1. Data we collect</h2>
+  <h3>From your Google account (when you sign in)</h3>
+  <ul>
+    <li>Your name, email address, profile picture link and Google account ID.</li>
+  </ul>
+
+  <h3>From Gmail (with your permission)</h3>
+  <p>OrdersHub asks for the read-only Gmail permission (<code>gmail.readonly</code>). It uses it only to:</p>
+  <ul>
+    <li>Search recent mail (currently the last 45 days) for messages from known shopping and delivery senders, or with order-related subjects such as "order", "shipped" or "delivered".</li>
+    <li>Read the subject, sender, date and text of those matching messages so the order details can be extracted.</li>
+    <li>When you tap <strong>Show OTP</strong> on an order, search your mail from the last 30 days for emails mentioning that order number, and read them to find the delivery OTP. The OTP is shown to you and is <strong>never stored</strong>.</li>
+  </ul>
+  <p>The full text of these emails is processed in memory and is <strong>not stored</strong>. From each order email we keep only:</p>
+  <ul>
+    <li>Order number, merchant name, order date and status, amount, refund amount, currency and whether it was paid.</li>
+    <li>Item names, item links, quantities and prices.</li>
+    <li>The Gmail message ID, so the same email is not imported twice.</li>
+  </ul>
+  <p>To keep your inbox connected, we store Google access and refresh tokens. They are encrypted with AES-256-GCM before they are saved.</p>
+
+  <h3>Data we do not collect</h3>
+  <p>We do not collect your location, contacts, SMS, call logs, photos, device identifiers for advertising, or payment card details. OrdersHub contains no advertising or analytics SDKs.</p>
+
+  <h2>2. How we use your data</h2>
+  <p>Only to provide the features you see in the app: showing your orders, their items, amounts and status, delivery OTPs when you ask for them, and the merchant's name and logo. We do not use it for anything else.</p>
+
+  <h2>3. Google API Services: Limited Use</h2>
+  <p>OrdersHub's use and transfer to any other app of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements. In particular:</p>
+  <ul>
+    <li>Gmail data is used only to provide and improve the user-facing order-tracking features described above.</li>
+    <li>Gmail data, and anything derived from it, is never sold, never transferred for advertising, and never used to serve ads, including personalised, retargeted or interest-based ads.</li>
+    <li>Gmail data is never used to determine credit-worthiness or for lending.</li>
+    <li>Gmail data is never used to develop, train or improve AI or machine-learning models.</li>
+    <li>No person reads your emails, unless you ask us to for support and give explicit consent, it is needed for security purposes such as investigating abuse, or it is required by law.</li>
+  </ul>
+
+  <h2>4. Who we share data with</h2>
+  <p>We share data only with the service providers needed to run OrdersHub:</p>
+  <table>
+    <thead><tr><th>Provider</th><th>What they receive</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Google (Sign-In and Gmail API)</td><td>Your sign-in and Gmail requests</td><td>To sign you in and read order emails</td></tr>
+      <tr><td>Railway (cloud hosting)</td><td>All data the OrdersHub server stores, listed in section 1</td><td>Runs the OrdersHub server and database</td></tr>
+      <tr><td>Google Gemini API</td><td>Merchant brand names only (for example "Amazon"). Never email text or anything about you.</td><td>To find the merchant's website</td></tr>
+      <tr><td>DuckDuckGo, Google favicon service, unavatar.io, Brandfetch</td><td>Merchant names or website addresses only. Your device also loads merchant logos from these services, which lets them see your IP address.</td><td>To find and show merchant logos</td></tr>
+    </tbody>
+  </table>
+  <p>We may also disclose data if required by law, or to protect the rights, property or safety of OrdersHub or its users.</p>
+
+  <h2>5. Security</h2>
+  <ul>
+    <li>All traffic between the app and the OrdersHub server uses HTTPS.</li>
+    <li>Google tokens are encrypted at rest. Your OrdersHub session is stored in the Android Keystore on your phone.</li>
+    <li>Every request is authenticated, and each user can only access their own data.</li>
+  </ul>
+  <p>No system is perfectly secure, but we work to protect your data and will tell affected users about a breach as required by law.</p>
+
+  <h2>6. How long we keep data</h2>
+  <ul>
+    <li>Orders and connected-account data are kept while your account exists.</li>
+    <li>When you disconnect a Gmail account, its tokens are deleted, OrdersHub's access is revoked with Google, and your imported orders are deleted.</li>
+    <li>When you delete your account, everything listed in section 1 is deleted immediately from our live database and Google access is revoked. Any copies in our hosting provider's backups are removed when those backups expire.</li>
+    <li>Merchant reference data (merchant names, websites and logos) is not personal data and is kept.</li>
+  </ul>
+
+  <h2>7. Your choices and rights</h2>
+  <ul>
+    <li><strong>Disconnect Gmail:</strong> Profile → Connected emails → Disconnect. You can also remove access any time at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
+    <li><strong>Delete your account:</strong> Profile → Delete account, or follow the steps on <a href="delete-account.html">this page</a>.</li>
+    <li><strong>Access or correction:</strong> contact us at the address below.</li>
+  </ul>
+  <p>Depending on where you live, including under India's Digital Personal Data Protection Act, 2023, you may have further rights to access, correct, erase or nominate someone to manage your data, and to complain to a regulator.</p>
+
+  <h2>8. Children</h2>
+  <p>OrdersHub is intended for people aged 18 and over and is not directed at children.</p>
+
+  <h2>9. Changes</h2>
+  <p>If we change this policy, we will update the date at the top. If a change affects how Gmail data is used, we will ask for your consent again in the app before applying it.</p>
+
+  <h2>10. Contact</h2>
+  <p>Questions or requests: <a href="mailto:{{SUPPORT_EMAIL}}">{{SUPPORT_EMAIL}}</a></p>
+
+  <nav class="links">
+    <a href="index.html">Home</a>
+    <a href="terms.html">Terms of Service</a>
+    <a href="delete-account.html">Delete your account</a>
+  </nav>
+</main>
+</body>
+</html>

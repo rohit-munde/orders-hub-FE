@@ -1,11 +1,11 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { Linking, Text, View } from 'react-native';
 import { GoogleGlyph } from '../../components/branding/BrandMark';
-import { SecurityLabel } from '../../components/branding/SecurityLabel';
 import { PrimaryButton } from '../../components/buttons/PrimaryButton';
 import { InlineMessage } from '../../components/feedback/InlineMessage';
 import { AppScreen } from '../../components/layout/AppScreen';
-import { useStyles } from '../../theme/AppThemeProvider';
+import { legalLinks } from '../../config/appConfig';
+import { useAppTheme, useStyles } from '../../theme/AppThemeProvider';
 import { useGoogleAuthentication } from './hooks/useGoogleAuthentication';
 import { AuthSession } from './types';
 
@@ -23,7 +23,7 @@ export function LoginScreen({
   return (
     <AppScreen contentStyle={styles.screen}>
       <View style={styles.heading}>
-        <Text style={styles.title}>OrderHub</Text>
+        <Text style={styles.title}>OrdersHub</Text>
         <Text style={styles.subtitle}>Every order from every inbox, organized.</Text>
       </View>
 
@@ -40,8 +40,40 @@ export function LoginScreen({
       </View>
 
       <View style={styles.footer}>
-        <SecurityLabel label="By continuing you accept Terms & Privacy" />
+        <LegalNotice />
       </View>
     </AppScreen>
+  );
+}
+
+function LegalNotice(): React.JSX.Element {
+  const { theme } = useAppTheme();
+  const labelStyle = [theme.styles.securityLabel.label, { color: theme.colors.textMuted }];
+  const linkStyle = { color: theme.colors.text, textDecorationLine: 'underline' as const };
+  const open = (url: string) => {
+    Linking.openURL(url).catch(() => {});
+  };
+
+  return (
+    <Text style={labelStyle} testID="login-legal-notice">
+      By continuing you accept the{' '}
+      <Text
+        style={linkStyle}
+        accessibilityRole="link"
+        onPress={() => open(legalLinks.terms)}
+        testID="login-terms-link"
+      >
+        Terms
+      </Text>{' '}
+      and{' '}
+      <Text
+        style={linkStyle}
+        accessibilityRole="link"
+        onPress={() => open(legalLinks.privacyPolicy)}
+        testID="login-privacy-link"
+      >
+        Privacy Policy
+      </Text>
+    </Text>
   );
 }

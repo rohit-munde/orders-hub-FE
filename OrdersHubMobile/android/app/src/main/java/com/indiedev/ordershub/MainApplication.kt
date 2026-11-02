@@ -1,4 +1,4 @@
-package com.ordershubmobile
+package com.indiedev.ordershub
 
 import android.app.Application
 import com.facebook.react.PackageList

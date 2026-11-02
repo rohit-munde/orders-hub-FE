@@ -9,6 +9,8 @@ import App from '../App';
 import { loadAuthSession } from '../src/features/auth/services/secureTokenStorage';
 import { AuthSession } from '../src/features/auth/types';
 
+let mockOnSessionExpired: (() => void) | undefined;
+
 jest.mock('@react-native-google-signin/google-signin', () => ({
   GoogleSignin: {
     configure: jest.fn(),
@@ -25,10 +27,34 @@ jest.mock('@react-native-google-signin/google-signin', () => ({
   },
 }));
 
+jest.mock('../src/features/auth/services/userApi', () => ({
+  getCurrentUserDetails: jest.fn().mockResolvedValue({
+    name: 'Test User',
+    pictureUrl: null,
+    connectedInboxCount: 1,
+    trackedOrderCount: 230,
+  }),
+}));
+
 jest.mock('../src/features/auth/services/secureTokenStorage', () => ({
   clearAuthSession: jest.fn(),
   loadAuthSession: jest.fn(),
   saveAuthSession: jest.fn(),
+}));
+
+jest.mock('../src/features/home/hooks/useOrders', () => ({
+  useOrders: (_appToken: string, onSessionExpired: () => void) => {
+    mockOnSessionExpired = onSessionExpired;
+    return {
+      orders: [],
+      lastSyncedAt: null,
+      isInitialLoading: false,
+      isRefreshing: false,
+      error: null,
+      load: jest.fn(),
+      refresh: jest.fn(),
+    };
+  },
 }));
 
 const restoredSession: AuthSession = {
@@ -44,6 +70,22 @@ const restoredSession: AuthSession = {
 beforeEach(() => {
   jest.useFakeTimers();
   jest.resetAllMocks();
+  mockOnSessionExpired = undefined;
+});
+
+it('returns to login when the Orders API expires the session', async () => {
+  (loadAuthSession as jest.Mock).mockResolvedValue(restoredSession);
+  let renderer: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+  await finishSplash();
+
+  await ReactTestRenderer.act(async () => mockOnSessionExpired?.());
+
+  expect(textNodesWith(renderer!, 'Continue with Google')).toHaveLength(1);
+  await ReactTestRenderer.act(() => renderer!.unmount());
 });
 
 afterEach(() => {

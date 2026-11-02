@@ -1,9 +1,12 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useStyles } from '../../../theme/AppThemeProvider';
+import { ProfileIcon } from './profile/ProfileIcon';
 
 type HomeHeaderProps = {
   name: string;
+  pictureUrl?: string | null;
+  onProfilePress: () => void;
 };
 
 function getGreeting(): string {
@@ -13,7 +16,7 @@ function getGreeting(): string {
   return 'Good evening';
 }
 
-export function HomeHeader({ name }: HomeHeaderProps): React.JSX.Element {
+export function HomeHeader({ name, pictureUrl, onProfilePress }: HomeHeaderProps): React.JSX.Element {
   const styles = useStyles().homeHeader;
   const firstName = name.trim().split(/\s+/)[0] || 'there';
 
@@ -33,9 +36,9 @@ export function HomeHeader({ name }: HomeHeaderProps): React.JSX.Element {
           <Text style={styles.bell}>♢</Text>
           <View style={styles.notificationDot} />
         </Pressable>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{firstName.charAt(0).toUpperCase()}</Text>
-        </View>
+
+        <ProfileIcon {...{ firstName, pictureUrl, onProfilePress }} />
+
       </View>
     </View>
   );
