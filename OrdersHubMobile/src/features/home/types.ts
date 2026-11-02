@@ -28,6 +28,8 @@ export type Order = {
   paid: boolean | null;
   status: OrderStatus;
   placedAt: string | null;
+  /** Present only while the order is on its way and the email contained an OTP. */
+  deliveryOtp?: string | null;
   items: OrderItem[];
 };
 

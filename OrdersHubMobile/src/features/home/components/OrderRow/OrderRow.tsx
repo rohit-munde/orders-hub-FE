@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clipboard, Image, Pressable, Text, View } from 'react-native';
+import { Clipboard, Image, Platform, Pressable, StyleSheet, Text, ToastAndroid, View } from 'react-native';
 import { AppTheme, useAppTheme } from '../../../../theme/AppThemeProvider';
 import { Order, OrderStatus } from '../../types';
 import { CopyIcon } from './components/CopyIcon';
@@ -91,9 +91,74 @@ export function OrderRow({ order }: OrderRowProps): React.JSX.Element {
           </Text>
         </View>
       </View>
+
+      {order.deliveryOtp ? <DeliveryOtp otp={order.deliveryOtp} /> : null}
     </View>
   );
 }
+
+function DeliveryOtp({ otp }: { otp: string }): React.JSX.Element {
+  const { theme } = useAppTheme();
+  const colors = theme.colors;
+  const copy = () => {
+    Clipboard.setString(otp);
+    if (Platform.OS === 'android') {
+      ToastAndroid.show('OTP copied', ToastAndroid.SHORT);
+    }
+  };
+
+  return (
+    <View
+      style={[otpStyles.row, { backgroundColor: colors.surface, borderColor: colors.border }]}
+      testID="delivery-otp"
+    >
+      <Text style={[otpStyles.label, { color: colors.textMuted }]}>Delivery OTP</Text>
+      <Text style={[otpStyles.code, { color: colors.text }]} selectable>
+        {otp}
+      </Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Copy delivery OTP"
+        onPress={copy}
+        hitSlop={8}
+        testID="copy-delivery-otp"
+        style={({ pressed }) => [otpStyles.copy, pressed && otpStyles.pressed]}
+      >
+        <CopyIcon color={colors.textMuted} backgroundColor={colors.surface} />
+      </Pressable>
+    </View>
+  );
+}
+
+const otpStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginRight: 10,
+  },
+  code: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: 3,
+    fontVariant: ['tabular-nums'],
+  },
+  copy: {
+    paddingLeft: 8,
+  },
+  pressed: {
+    opacity: 0.6,
+  },
+});
 
 
 
