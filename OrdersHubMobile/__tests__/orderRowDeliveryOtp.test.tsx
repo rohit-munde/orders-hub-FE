@@ -36,6 +36,10 @@ async function render(value: Order, requestOtp?: (orderId: number) => Promise<De
   return component!;
 }
 
+function otpValue(component: ReactTestRenderer.ReactTestRenderer) {
+  return component.root.findByProps({ testID: 'delivery-otp-value' }).props.children;
+}
+
 async function tapShowOtp(component: ReactTestRenderer.ReactTestRenderer) {
   await ReactTestRenderer.act(async () => {
     await component.root.findByProps({ testID: 'show-delivery-otp' }).props.onPress();
@@ -55,18 +59,34 @@ describe('OrderRow delivery OTP', () => {
     const component = await render(order(), requestOtp);
 
     expect(requestOtp).not.toHaveBeenCalled();
+    expect(otpValue(component)).toBe('••••••');
     expect(JSON.stringify(component.toJSON())).not.toContain('482913');
 
     await tapShowOtp(component);
 
     expect(requestOtp).toHaveBeenCalledWith(21);
-    expect(JSON.stringify(component.toJSON())).toContain('482913');
+    expect(otpValue(component)).toBe('482913');
 
     await ReactTestRenderer.act(async () => {
       component.root.findByProps({ testID: 'copy-delivery-otp' }).props.onPress();
     });
     expect(setString).toHaveBeenCalledWith('482913');
     expect(toast).toHaveBeenCalledWith('OTP copied', ToastAndroid.SHORT);
+  });
+
+  it('hides the OTP again and re-shows it without another Gmail lookup', async () => {
+    const requestOtp = jest.fn().mockResolvedValue({ otp: '482913', receivedAt: null });
+    const component = await render(order(), requestOtp);
+
+    await tapShowOtp(component);
+    await ReactTestRenderer.act(async () => {
+      component.root.findByProps({ testID: 'hide-delivery-otp' }).props.onPress();
+    });
+    expect(otpValue(component)).toBe('••••••');
+
+    await tapShowOtp(component);
+    expect(otpValue(component)).toBe('482913');
+    expect(requestOtp).toHaveBeenCalledTimes(1);
   });
 
   it('explains when the email has no OTP and lets the user retry', async () => {
@@ -79,9 +99,10 @@ describe('OrderRow delivery OTP', () => {
     await tapShowOtp(component);
     const message = component.root.findByProps({ testID: 'delivery-otp-message' });
     expect(message.props.children).toBe('No OTP in your email yet. Couriers often send it by SMS.');
+    expect(otpValue(component)).toBe('••••••');
 
     await tapShowOtp(component);
-    expect(JSON.stringify(component.toJSON())).toContain('7254');
+    expect(otpValue(component)).toBe('7254');
   });
 
   it('asks the user to reconnect Gmail when the connection has expired', async () => {
@@ -98,7 +119,7 @@ describe('OrderRow delivery OTP', () => {
     const requestOtp = jest.fn();
     for (const status of ['DELIVERED', 'CANCELLED', 'REFUNDED'] as const) {
       const component = await render(order({ status }), requestOtp);
-      expect(component.root.findAllByProps({ testID: 'show-delivery-otp' })).toHaveLength(0);
+      expect(component.root.findAllByProps({ testID: 'delivery-otp' })).toHaveLength(0);
     }
     expect(requestOtp).not.toHaveBeenCalled();
   });
@@ -106,6 +127,6 @@ describe('OrderRow delivery OTP', () => {
   it('does not offer an OTP when no lookup is provided', async () => {
     const component = await render(order());
 
-    expect(component.root.findAllByProps({ testID: 'show-delivery-otp' })).toHaveLength(0);
+    expect(component.root.findAllByProps({ testID: 'delivery-otp' })).toHaveLength(0);
   });
 });

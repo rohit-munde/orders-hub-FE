@@ -105,11 +105,18 @@ export function OrderRow({ order, onRequestDeliveryOtp }: OrderRowProps): React.
 }
 
 type OtpState =
-  | { kind: 'idle' }
+  | { kind: 'masked' }
   | { kind: 'loading' }
-  | { kind: 'found'; otp: DeliveryOtp }
-  | { kind: 'message'; text: string };
+  | { kind: 'revealed'; otp: DeliveryOtp }
+  | { kind: 'hidden'; otp: DeliveryOtp }
+  | { kind: 'error'; text: string };
 
+const MASK = '••••••';
+
+/**
+ * Shows a masked delivery OTP. The real code is fetched from Gmail only when the user taps
+ * Show, kept in this component's state while the screen is open, and never saved anywhere.
+ */
 function DeliveryOtpControl({
   orderId,
   requestOtp,
@@ -119,14 +126,18 @@ function DeliveryOtpControl({
 }): React.JSX.Element {
   const { theme } = useAppTheme();
   const colors = theme.colors;
-  const [state, setState] = React.useState<OtpState>({ kind: 'idle' });
+  const [state, setState] = React.useState<OtpState>({ kind: 'masked' });
 
-  const load = async () => {
+  const reveal = async () => {
+    if (state.kind === 'hidden') {
+      setState({ kind: 'revealed', otp: state.otp });
+      return;
+    }
     setState({ kind: 'loading' });
     try {
-      setState({ kind: 'found', otp: await requestOtp(orderId) });
+      setState({ kind: 'revealed', otp: await requestOtp(orderId) });
     } catch (error) {
-      setState({ kind: 'message', text: otpErrorMessage(error) });
+      setState({ kind: 'error', text: otpErrorMessage(error) });
     }
   };
 
@@ -137,64 +148,77 @@ function DeliveryOtpControl({
     }
   };
 
-  const rowStyle = [otpStyles.row, { backgroundColor: colors.surface, borderColor: colors.border }];
-
-  if (state.kind === 'found') {
-    return (
-      <View style={rowStyle} testID="delivery-otp">
-        <View style={otpStyles.labelColumn}>
-          <Text style={[otpStyles.label, { color: colors.textMuted }]}>Delivery OTP</Text>
-          {state.otp.receivedAt ? (
-            <Text style={[otpStyles.hint, { color: colors.textMuted }]}>
-              From email {formatPlacedDate(state.otp.receivedAt)}
-            </Text>
-          ) : null}
-        </View>
-        <Text style={[otpStyles.code, { color: colors.text }]} selectable>
-          {state.otp.otp}
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Copy delivery OTP"
-          onPress={() => copy(state.otp.otp)}
-          hitSlop={8}
-          testID="copy-delivery-otp"
-          style={({ pressed }) => [otpStyles.copy, pressed && otpStyles.pressed]}
-        >
-          <CopyIcon color={colors.textMuted} backgroundColor={colors.surface} />
-        </Pressable>
-      </View>
-    );
-  }
+  const revealed = state.kind === 'revealed' ? state.otp : null;
 
   return (
-    <View style={rowStyle}>
-      {state.kind === 'message' ? (
-        <Text style={[otpStyles.message, { color: colors.textMuted }]} testID="delivery-otp-message">
-          {state.text}
-        </Text>
-      ) : (
-        <Text style={[otpStyles.message, { color: colors.textMuted }]}>
-          Courier asking for an OTP?
-        </Text>
-      )}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Show delivery OTP"
-        onPress={load}
-        disabled={state.kind === 'loading'}
-        hitSlop={8}
-        testID="show-delivery-otp"
-        style={({ pressed }) => [otpStyles.action, pressed && otpStyles.pressed]}
-      >
-        {state.kind === 'loading' ? (
-          <ActivityIndicator size="small" color={colors.text} />
-        ) : (
-          <Text style={[otpStyles.actionText, { color: colors.text }]}>
-            {state.kind === 'message' ? 'Try again' : 'Show OTP'}
+    <View
+      style={[otpStyles.row, { backgroundColor: colors.surface, borderColor: colors.border }]}
+      testID="delivery-otp"
+    >
+      <View style={otpStyles.labelColumn}>
+        <Text style={[otpStyles.label, { color: colors.textMuted }]}>Delivery OTP</Text>
+        {revealed?.receivedAt ? (
+          <Text style={[otpStyles.hint, { color: colors.textMuted }]}>
+            From email {formatPlacedDate(revealed.receivedAt)}
           </Text>
-        )}
-      </Pressable>
+        ) : null}
+      </View>
+
+      <View style={otpStyles.valueColumn}>
+        <Text
+          style={[otpStyles.code, { color: revealed ? colors.text : colors.textMuted }]}
+          selectable={Boolean(revealed)}
+          accessibilityLabel={revealed ? `Delivery OTP ${revealed.otp.split('').join(' ')}` : 'Delivery OTP hidden'}
+          testID="delivery-otp-value"
+        >
+          {revealed ? revealed.otp : MASK}
+        </Text>
+        {state.kind === 'error' ? (
+          <Text style={[otpStyles.message, { color: colors.textMuted }]} testID="delivery-otp-message">
+            {state.text}
+          </Text>
+        ) : null}
+      </View>
+
+      {state.kind === 'loading' ? (
+        <ActivityIndicator size="small" color={colors.text} style={otpStyles.action} />
+      ) : revealed ? (
+        <View style={otpStyles.actions}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Copy delivery OTP"
+            onPress={() => copy(revealed.otp)}
+            hitSlop={8}
+            testID="copy-delivery-otp"
+            style={({ pressed }) => [otpStyles.copy, pressed && otpStyles.pressed]}
+          >
+            <CopyIcon color={colors.textMuted} backgroundColor={colors.surface} />
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Hide delivery OTP"
+            onPress={() => setState({ kind: 'hidden', otp: revealed })}
+            hitSlop={8}
+            testID="hide-delivery-otp"
+            style={({ pressed }) => [otpStyles.action, pressed && otpStyles.pressed]}
+          >
+            <Text style={[otpStyles.actionText, { color: colors.text }]}>Hide</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Show delivery OTP"
+          onPress={reveal}
+          hitSlop={8}
+          testID="show-delivery-otp"
+          style={({ pressed }) => [otpStyles.action, pressed && otpStyles.pressed]}
+        >
+          <Text style={[otpStyles.actionText, { color: colors.text }]}>
+            {state.kind === 'error' ? 'Retry' : 'Show'}
+          </Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -235,14 +259,21 @@ const otpStyles = StyleSheet.create({
     fontSize: 10,
     marginTop: 2,
   },
-  message: {
+  valueColumn: {
     flex: 1,
-    fontSize: 12,
-    marginRight: 8,
+  },
+  message: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   action: {
-    minWidth: 72,
+    minWidth: 44,
     alignItems: 'flex-end',
+    marginLeft: 8,
   },
   actionText: {
     fontSize: 13,
