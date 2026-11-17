@@ -3,9 +3,10 @@ import { NativeModules, Platform } from 'react-native';
 const PRODUCTION_BACKEND_URL = 'https://orders-hub-be-production.up.railway.app';
 const LOCAL_BACKEND_PORT = 8080; // Local Spring Boot backend port (Metro bundler uses 8081)
 
-// Developer toggle to intentionally run against the local backend in development.
-// By default, this is false, so physical devices/production use the production URL by default.
-const FORCE_LOCAL_BACKEND = true;
+// Developer toggle to run debug builds against a Spring Boot backend on this computer
+// (http://10.0.2.2:8080 on the Android emulator). Off by default, so debug and release
+// builds both use the live Railway backend. Set to true only while running the backend locally.
+const FORCE_LOCAL_BACKEND = false;
 
 export function resolveLocalApiBaseUrl(
   scriptUrl: string | undefined,
