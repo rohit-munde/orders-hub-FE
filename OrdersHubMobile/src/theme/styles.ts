@@ -464,6 +464,8 @@ export function createAppStyles(colors: ThemeColors) {
       },
       priceContainer: {
         alignItems: 'flex-end',
+        flexShrink: 0,
+        maxWidth: '48%',
       },
       price: {
         color: colors.text,
@@ -487,14 +489,17 @@ export function createAppStyles(colors: ThemeColors) {
         alignItems: 'center',
       },
       orderNumberRow: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
+        marginRight: spacing.sm,
       },
       hashtag: {
         color: colors.textMuted,
         fontSize: typography.caption,
       },
       orderNumber: {
+        flexShrink: 1,
         color: colors.text,
         fontSize: typography.caption,
         fontWeight: '600',
@@ -503,6 +508,7 @@ export function createAppStyles(colors: ThemeColors) {
         marginLeft: 6,
       },
       statusBadge: {
+        flexShrink: 0,
         flexDirection: 'row',
         alignItems: 'center',
         height: 30,

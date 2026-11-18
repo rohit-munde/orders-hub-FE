@@ -114,8 +114,8 @@ it('renders API order fields and keeps pull-to-refresh connected', async () => {
   expect(content).toContain('ORDER-22');
   expect(content).toContain('Aug 3 · 3:30 PM');
   expect(content).toContain('Out for delivery');
-  // Active orders show a masked OTP; the real code is fetched only when the user taps Show.
-  expect(renderer!.root.findByProps({ testID: 'delivery-otp-value' }).props.children).toBe('••••••');
+  // This sample order is months old, so no delivery OTP row is offered for it.
+  expect(renderer!.root.findAllByProps({ testID: 'delivery-otp-value' })).toHaveLength(0);
 
   const copyButton = renderer!.root.findByProps({ accessibilityLabel: 'Copy order ID' });
   await ReactTestRenderer.act(async () => {

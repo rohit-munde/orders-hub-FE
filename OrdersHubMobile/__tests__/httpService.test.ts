@@ -112,7 +112,17 @@ it('yesta', async () => {
 it('uses a safe fallback for a malformed HTTP error body', async () => {
   mockResponse(503, null);
   await expect(httpService.get('/api/v1/orders')).rejects.toEqual(
-    expect.objectContaining({ status: 503, message: 'Request failed (503).' }),
+    expect.objectContaining({ status: 503, message: 'OrdersHub server is temporarily unavailable. Please try again shortly.' }),
+  );
+});
+
+it('explains a rate limit from the hosting provider in plain language', async () => {
+  mockResponse(429, null);
+  await expect(httpService.get('/api/v1/orders')).rejects.toEqual(
+    expect.objectContaining({
+      status: 429,
+      message: 'OrdersHub is getting too many requests right now. Please try again in a minute.',
+    }),
   );
 });
 
