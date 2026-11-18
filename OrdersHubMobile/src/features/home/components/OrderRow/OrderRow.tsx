@@ -62,7 +62,7 @@ export function OrderRow({ order, onRequestDeliveryOtp }: OrderRowProps): React.
         <View style={styles.merchantInfo}>
           <Text numberOfLines={1} style={styles.merchantName}>{merchant}</Text>
           {order.placedAt ? (
-            <Text style={styles.placedAt}>
+            <Text style={styles.placedAt} numberOfLines={1}>
               {formatPlacedDate(order.placedAt)}
             </Text>
           ) : null}
