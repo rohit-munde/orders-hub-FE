@@ -1,7 +1,7 @@
 import React from 'react';
 import { Clipboard, Platform, ToastAndroid } from 'react-native';
 import ReactTestRenderer from 'react-test-renderer';
-import { OrderRow } from '../src/features/home/components/OrderRow/OrderRow';
+import { canHaveDeliveryOtp, OrderRow } from '../src/features/home/components/OrderRow/OrderRow';
 import { DeliveryOtp, Order } from '../src/features/home/types';
 import { ApiError } from '../src/services/http/ApiError';
 import { AppThemeProvider } from '../src/theme/AppThemeProvider';
@@ -18,7 +18,7 @@ function order(overrides: Partial<Order> = {}): Order {
     currency: 'INR',
     paid: true,
     status: 'OUT_FOR_DELIVERY',
-    placedAt: '2026-08-03T10:00:00Z',
+    placedAt: new Date(Date.now() - 2 * 24 * 3600e3).toISOString(),
     items: [],
     ...overrides,
   };
@@ -115,9 +115,21 @@ describe('OrderRow delivery OTP', () => {
       .toBe('Reconnect Gmail in Profile to look up OTPs.');
   });
 
-  it('does not offer an OTP for finished orders', async () => {
+  it('only offers an OTP while the parcel is on its way', () => {
+    const now = Date.parse('2026-11-18T10:00:00Z');
+    const daysAgo = (days: number) => new Date(now - days * 24 * 3600e3).toISOString();
+    expect(canHaveDeliveryOtp(order({ status: 'SHIPPED', placedAt: daysAgo(3) }), now)).toBe(true);
+    expect(canHaveDeliveryOtp(order({ status: 'OUT_FOR_DELIVERY', placedAt: daysAgo(1) }), now)).toBe(true);
+    expect(canHaveDeliveryOtp(order({ status: 'DISPATCHED', placedAt: null }), now)).toBe(true);
+    expect(canHaveDeliveryOtp(order({ status: 'SHIPPED', placedAt: daysAgo(45) }), now)).toBe(false);
+    for (const status of ['UNKNOWN', 'CONFIRMED', 'DELIVERED', 'CANCELLED', 'REFUNDED'] as const) {
+      expect(canHaveDeliveryOtp(order({ status, placedAt: daysAgo(1) }), now)).toBe(false);
+    }
+  });
+
+  it('does not offer an OTP for finished, unconfirmed or unknown orders', async () => {
     const requestOtp = jest.fn();
-    for (const status of ['DELIVERED', 'CANCELLED', 'REFUNDED'] as const) {
+    for (const status of ['UNKNOWN', 'CONFIRMED', 'DELIVERED', 'CANCELLED', 'REFUNDED'] as const) {
       const component = await render(order({ status }), requestOtp);
       expect(component.root.findAllByProps({ testID: 'delivery-otp' })).toHaveLength(0);
     }
@@ -128,5 +140,12 @@ describe('OrderRow delivery OTP', () => {
     const component = await render(order());
 
     expect(component.root.findAllByProps({ testID: 'delivery-otp' })).toHaveLength(0);
+  });
+
+  it('shows a quiet dash when the email had no amount', async () => {
+    const component = await render(order({ billAmount: null, status: 'DELIVERED' }));
+
+    expect(component.root.findByProps({ testID: 'amount-missing' }).props.children).toBe('—');
+    expect(JSON.stringify(component.toJSON())).not.toContain('Amount unavailable');
   });
 });

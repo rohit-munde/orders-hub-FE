@@ -12,7 +12,20 @@ type OrderRowProps = {
   onRequestDeliveryOtp?: (orderId: number) => Promise<DeliveryOtp>;
 };
 
-const FINISHED_STATUSES: OrderStatus[] = ['DELIVERED', 'CANCELLED', 'REFUNDED'];
+/** Delivery OTPs only matter while a parcel is actually on its way. */
+const IN_TRANSIT_STATUSES: OrderStatus[] = ['DISPATCHED', 'SHIPPED', 'OUT_FOR_DELIVERY'];
+const OTP_WINDOW_DAYS = 30;
+
+export function canHaveDeliveryOtp(order: Order, now: number = Date.now()): boolean {
+  if (!IN_TRANSIT_STATUSES.includes(order.status)) {
+    return false;
+  }
+  if (!order.placedAt) {
+    return true;
+  }
+  const placed = new Date(order.placedAt).getTime();
+  return Number.isNaN(placed) || now - placed <= OTP_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+}
 
 export function OrderRow({ order, onRequestDeliveryOtp }: OrderRowProps): React.JSX.Element {
   const { theme } = useAppTheme();
@@ -49,16 +62,26 @@ export function OrderRow({ order, onRequestDeliveryOtp }: OrderRowProps): React.
         <View style={styles.merchantInfo}>
           <Text numberOfLines={1} style={styles.merchantName}>{merchant}</Text>
           {order.placedAt ? (
-            <Text style={styles.placedAt}>
+            <Text style={styles.placedAt} numberOfLines={1}>
               {formatPlacedDate(order.placedAt)}
             </Text>
           ) : null}
         </View>
 
         <View style={styles.priceContainer}>
-          <Text style={styles.price}>
-            {formatAmount(order.billAmount, order.currency)}
-          </Text>
+          {order.billAmount === null || order.billAmount === undefined ? (
+            <Text
+              style={[styles.price, otpStyles.priceMissing, { color: theme.colors.textMuted }]}
+              accessibilityLabel="Amount not available"
+              testID="amount-missing"
+            >
+              —
+            </Text>
+          ) : (
+            <Text style={styles.price} numberOfLines={1}>
+              {formatAmount(order.billAmount, order.currency)}
+            </Text>
+          )}
           {order.refundAmount !== null && order.refundAmount !== undefined ? (
             <Text style={styles.refundText}>
               -{formatAmount(order.refundAmount, order.currency)} refunded
@@ -72,7 +95,9 @@ export function OrderRow({ order, onRequestDeliveryOtp }: OrderRowProps): React.
       <View style={styles.bottomSection}>
         <View style={styles.orderNumberRow}>
           <Text style={styles.hashtag}># </Text>
-          <Text style={styles.orderNumber}>{order.orderNo}</Text>
+          <Text style={styles.orderNumber} numberOfLines={1} ellipsizeMode="middle">
+            {order.orderNo}
+          </Text>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Copy order ID"
@@ -97,7 +122,7 @@ export function OrderRow({ order, onRequestDeliveryOtp }: OrderRowProps): React.
         </View>
       </View>
 
-      {onRequestDeliveryOtp && !FINISHED_STATUSES.includes(order.status) ? (
+      {onRequestDeliveryOtp && canHaveDeliveryOtp(order) ? (
         <DeliveryOtpControl orderId={order.id} requestOtp={onRequestDeliveryOtp} />
       ) : null}
     </View>
@@ -157,22 +182,25 @@ function DeliveryOtpControl({
     >
       <View style={otpStyles.labelColumn}>
         <Text style={[otpStyles.label, { color: colors.textMuted }]}>Delivery OTP</Text>
-        {revealed?.receivedAt ? (
-          <Text style={[otpStyles.hint, { color: colors.textMuted }]}>
-            From email {formatPlacedDate(revealed.receivedAt)}
-          </Text>
-        ) : null}
       </View>
 
       <View style={otpStyles.valueColumn}>
         <Text
           style={[otpStyles.code, { color: revealed ? colors.text : colors.textMuted }]}
           selectable={Boolean(revealed)}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
           accessibilityLabel={revealed ? `Delivery OTP ${revealed.otp.split('').join(' ')}` : 'Delivery OTP hidden'}
           testID="delivery-otp-value"
         >
           {revealed ? revealed.otp : MASK}
         </Text>
+        {revealed?.receivedAt ? (
+          <Text style={[otpStyles.hint, { color: colors.textMuted }]} numberOfLines={1}>
+            From email {formatPlacedDate(revealed.receivedAt)}
+          </Text>
+        ) : null}
         {state.kind === 'error' ? (
           <Text style={[otpStyles.message, { color: colors.textMuted }]} testID="delivery-otp-message">
             {state.text}
@@ -292,6 +320,10 @@ const otpStyles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.6,
+  },
+  priceMissing: {
+    fontSize: 18,
+    fontWeight: '500',
   },
 });
 

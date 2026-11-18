@@ -26,9 +26,23 @@ function validationErrorsFor(value: unknown): Record<string, string> | null {
   return value as Record<string, string>;
 }
 
+/**
+ * A plain-language message for failures where the server sent no explanation of its own,
+ * such as the hosting provider's edge blocking or rate-limiting requests.
+ */
+export function fallbackMessageFor(status: number): string {
+  if (status === 429) {
+    return 'OrdersHub is getting too many requests right now. Please try again in a minute.';
+  }
+  if (status >= 500) {
+    return 'OrdersHub server is temporarily unavailable. Please try again shortly.';
+  }
+  return `Request failed (${status}).`;
+}
+
 function apiErrorFor(responseStatus: number, body: unknown): ApiError {
   if (!isRecord(body)) {
-    return new ApiError(`Request failed (${responseStatus}).`, {
+    return new ApiError(fallbackMessageFor(responseStatus), {
       status: responseStatus,
     });
   }
@@ -40,7 +54,7 @@ function apiErrorFor(responseStatus: number, body: unknown): ApiError {
       : responseStatus;
 
   return new ApiError(
-    stringValue(body, 'message') ?? `Request failed (${responseStatus}).`,
+    stringValue(body, 'message') || fallbackMessageFor(responseStatus),
     {
       status,
       error: stringValue(body, 'error'),
