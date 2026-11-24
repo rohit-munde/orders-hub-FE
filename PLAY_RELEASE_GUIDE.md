@@ -22,7 +22,7 @@ After a minute these must open:
 - https://rohit-munde.github.io/orders-hub-FE/terms.html
 - https://rohit-munde.github.io/orders-hub-FE/delete-account.html
 
-Before you share them, replace `{{SUPPORT_EMAIL}}` in the three pages with your real support email. Ask Claude to do it.
+The pages list `advaancer@gmail.com` as the support email. Use the same address as the Play Console contact email and the Google Cloud user support email.
 
 ## Step 3: Add the signing secrets to GitHub (5 min)
 
