@@ -89,9 +89,9 @@ Answers that match how OrdersHub actually works:
 **Privacy policy:** `https://rohit-munde.github.io/orders-hub-FE/privacy.html`
 
 **App access:** "All or some functionality is restricted" → add instructions:
-> Sign in with Google using the test account below, then allow read-only Gmail access. The test inbox contains sample order emails. Username: `<test gmail>` Password: `<password>`
+> Open the app, read the "How OrdersHub uses your Gmail" notice and tap **Agree & continue**. Sign in with Google using the test account below and allow read-only Gmail access. Google may show an "unverified app" warning while our Gmail verification is in review: tap **Advanced → Go to OrdersHub**. The test inbox holds sample order emails, so orders appear on the home screen within a minute. Tap an order that is out for delivery and then **Show OTP** to see the delivery OTP lookup. Username: `<test gmail>` Password: `<password>`
 
-Create a fresh Gmail account for reviewers. Turn **off** 2-step verification on it. Forward a few real order confirmation emails into it so the home screen has orders.
+Create a fresh Gmail account for reviewers. Turn **off** 2-step verification on it. Forward a few real order confirmation emails into it so the home screen has orders, including one shipping email that contains a delivery OTP. Add the account as a test user in Google Cloud (Audience → Test users) as well. Sign in with it once yourself on a phone to check it works before you submit.
 
 **Ads:** No, the app does not contain ads.
 
@@ -121,7 +121,9 @@ Data types to declare (all **collected**, none **shared**; service providers act
 | Personal info → Email address | Required | No | App functionality, Account management |
 | Personal info → User IDs | Required | No | App functionality, Account management |
 | Financial info → Purchase history | Required | No | App functionality |
-| Messages → Emails | Required | **Yes** (email text is read to extract orders, then discarded) | App functionality |
+| Messages → Emails | Required | **No** | App functionality |
+
+Why Emails is **not** ephemeral: the full email text is read in memory and discarded, but OrdersHub keeps details taken from those emails (order number, merchant, items, amounts, status), the Gmail message IDs they came from, and a processing record for each email. That stored data comes from emails, so declare it as collected and not ephemeral. Delivery OTPs are never stored. All of it is deleted when the user deletes their account.
 
 Don't declare location, contacts, photos, device IDs, app activity or crash logs. OrdersHub doesn't collect them.
 

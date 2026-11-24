@@ -77,12 +77,16 @@ export function createAppStyles(colors: ThemeColors) {
     }),
 
     login: StyleSheet.create({
-      screen: { paddingHorizontal: spacing.xl },
+      screen: { paddingHorizontal: 0 },
+      scrollContent: {
+        flexGrow: 1,
+        justifyContent: 'space-between',
+        paddingHorizontal: spacing.xl,
+        paddingTop: spacing.xl * 2,
+        paddingBottom: spacing.xl,
+        gap: spacing.xl,
+      },
       heading: {
-        position: 'absolute',
-        top: '17%',
-        left: spacing.lg,
-        right: spacing.lg,
         alignItems: 'center',
       },
       title: {
@@ -100,17 +104,10 @@ export function createAppStyles(colors: ThemeColors) {
         textAlign: 'center',
       },
       authArea: {
-        position: 'absolute',
-        top: '38%',
-        left: spacing.xl,
-        right: spacing.xl,
         gap: spacing.lg,
       },
       footer: {
-        position: 'absolute',
-        left: spacing.lg,
-        right: spacing.lg,
-        bottom: spacing.xl,
+        paddingTop: spacing.sm,
       },
     }),
 
@@ -321,21 +318,6 @@ export function createAppStyles(colors: ThemeColors) {
         flexDirection: 'row',
         alignItems: 'center',
         gap: spacing.lg,
-      },
-      notificationButton: {
-        width: 40,
-        height: 40,
-        alignItems: 'center',
-        justifyContent: 'center',
-      },
-      bell: { color: colors.text, fontSize: 24 },
-      notificationDot: {
-        position: 'absolute',
-        bottom: 5,
-        width: 5,
-        height: 5,
-        borderRadius: radii.pill,
-        backgroundColor: colors.text,
       },
       avatar: {
         width: 52,

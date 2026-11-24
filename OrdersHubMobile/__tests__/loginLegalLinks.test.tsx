@@ -33,3 +33,21 @@ it('links the Terms and Privacy Policy from the sign-in screen', async () => {
   expect(openURL).toHaveBeenCalledWith(legalLinks.privacyPolicy);
   openURL.mockRestore();
 });
+
+it('explains how Gmail is used before asking the user to sign in', async () => {
+  let component: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(async () => {
+    component = ReactTestRenderer.create(
+      <AppThemeProvider>
+        <LoginScreen onAuthenticated={jest.fn()} />
+      </AppThemeProvider>,
+    );
+  });
+
+  const text = JSON.stringify(component!.toJSON());
+  expect(component!.root.findAllByProps({ testID: 'gmail-disclosure' }).length).toBeGreaterThan(0);
+  expect(text).toContain('read-only access to your Gmail');
+  expect(text).toContain('never sold or used for ads');
+  expect(text).toContain('Agree & continue');
+  expect(component!.root.findAllByProps({ accessibilityLabel: 'Agree and continue with Google' }).length).toBeGreaterThan(0);
+});

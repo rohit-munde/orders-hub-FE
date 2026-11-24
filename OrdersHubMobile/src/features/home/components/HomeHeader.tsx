@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { useStyles } from '../../../theme/AppThemeProvider';
 import { ProfileIcon } from './profile/ProfileIcon';
 
@@ -28,15 +28,6 @@ export function HomeHeader({ name, pictureUrl, onProfilePress }: HomeHeaderProps
       </View>
 
       <View style={styles.actions}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Notifications"
-          hitSlop={10}
-          style={styles.notificationButton}>
-          <Text style={styles.bell}>♢</Text>
-          <View style={styles.notificationDot} />
-        </Pressable>
-
         <ProfileIcon {...{ firstName, pictureUrl, onProfilePress }} />
 
       </View>
