@@ -84,7 +84,7 @@ it('returns to login when the Orders API expires the session', async () => {
 
   await ReactTestRenderer.act(async () => mockOnSessionExpired?.());
 
-  expect(textNodesWith(renderer!, 'Continue with Google')).toHaveLength(1);
+  expect(textNodesWith(renderer!, 'Agree & continue')).toHaveLength(1);
   await ReactTestRenderer.act(() => renderer!.unmount());
 });
 
